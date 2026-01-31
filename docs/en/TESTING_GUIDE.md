@@ -39,9 +39,11 @@ go test ./internal/llmgen -v
 2. Pull a code model:
 
 ```bash
-ollama pull qwen2.5-coder:7b
-# or
-ollama pull deepseek-coder:6.7b
+# Recommended models (from lightest to heaviest):
+ollama pull phi3:mini          # 3.8GB - Fastest, ideal for CI/CD
+ollama pull qwen2.5-coder:1.5b # 1.5GB - Very light, good for quick tests
+ollama pull qwen2.5-coder:7b   # 4.7GB - Balanced quality/speed
+ollama pull deepseek-coder:6.7b # 3.8GB - Excellent for code
 ```
 
 ### Run LLM Integration Tests

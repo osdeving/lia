@@ -56,12 +56,38 @@ O **LIA (Linguagem Intermediária Assistida)** é um toolchain model-first para 
 
 ## 3. WORKFLOW DE CONTRIBUIÇÃO
 
-### 3.1 Branch Naming
+### 3.1 Branch Naming Convention
 
-- `feat/nome-descritivo`: Novas funcionalidades
-- `fix/issue-id`: Correções de bugs
-- `spec/proposta`: Mudanças na especificação LIA
-- `docs/topico`: Melhorias em documentação
+**Formato**: `<type>/<scope>/<short-description>`
+
+#### Tipos de Branch
+
+- `feat/<scope>/<description>`: Novas funcionalidades
+  - Ex: `feat/parser/add-hole-support`, `feat/linker/multi-candidate-selection`
+- `fix/<scope>/<description>`: Correções de bugs
+  - Ex: `fix/codec/canonical-json-sorting`, `fix/linker/hash-determinism`
+- `spec/<scope>/<description>`: Mudanças na especificação LIA
+  - Ex: `spec/grammar/effect-system`, `spec/policies/budget-constraints`
+- `docs/<scope>/<description>`: Melhorias em documentação
+  - Ex: `docs/guide/getting-started`, `docs/api/llmgen-integration`
+- `test/<scope>/<description>`: Adição/melhoria de testes
+  - Ex: `test/parser/edge-cases`, `test/integration/e2e-workflow`
+- `refactor/<scope>/<description>`: Refatorações sem mudança de comportamento
+  - Ex: `refactor/codec/extract-sorting`, `refactor/cli/command-structure`
+- `perf/<scope>/<description>`: Otimizações de performance
+  - Ex: `perf/linker/graph-resolution`, `perf/parser/streaming-mode`
+
+#### Scopes Válidos
+
+- `parser`, `linker`, `codec`, `llmgen`, `policy`, `repro`, `cli`, `check`, `lower`
+- `spec`, `docs`, `examples`, `packs`
+
+#### Regras
+
+- Use kebab-case (palavras separadas por hífen)
+- Máximo de 50 caracteres no total
+- Seja descritivo mas conciso
+- Se relacionado a issue, use: `fix/linker/issue-123-symbol-collision`
 
 ### 3.2 Commits Convencionais
 
