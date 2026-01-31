@@ -144,7 +144,7 @@ func SortAll(p *ir.Program) {
 
 		for j := range m.Usecases {
 			uc := &m.Usecases[j]
-			sort.Slice(uc.Inputs, func(a, b int) bool { return uc.Inputs[a].Name < uc.Inputs[b].Name })
+			// Inputs are ordered (function parameters).
 			sort.Slice(uc.Outputs, func(a, b int) bool { return uc.Outputs[a].Name < uc.Outputs[b].Name })
 			sort.Strings(uc.Effects)
 		}

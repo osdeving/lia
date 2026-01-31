@@ -130,6 +130,7 @@ type UsecaseDecl struct {
 	Inputs  []Field  `json:"inputs,omitempty"`
 	Outputs []Field  `json:"outputs,omitempty"`
 	Effects []string `json:"effects,omitempty"`
+	Body    []Stmt   `json:"body,omitempty"`
 }
 
 // AdapterDecl defines an adapter.
@@ -184,6 +185,82 @@ type FuncDecl struct {
 type Field struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
+}
+
+// Stmt is a structured statement node.
+type Stmt struct {
+	Kind     string        `json:"kind"`
+	Let      *LetStmt      `json:"let,omitempty"`
+	Assign   *AssignStmt   `json:"assign,omitempty"`
+	If       *IfStmt       `json:"if,omitempty"`
+	Loop     *LoopStmt     `json:"loop,omitempty"`
+	Break    *BreakStmt    `json:"break,omitempty"`
+	Continue *ContinueStmt `json:"continue,omitempty"`
+	Return   *ReturnStmt   `json:"return,omitempty"`
+	Expr     *Expr         `json:"expr,omitempty"`
+}
+
+type LetStmt struct {
+	Name  string `json:"name"`
+	Value Expr   `json:"value"`
+}
+
+type AssignStmt struct {
+	Name  string `json:"name"`
+	Value Expr   `json:"value"`
+}
+
+type IfStmt struct {
+	Cond Expr   `json:"cond"`
+	Then []Stmt `json:"then"`
+	Else []Stmt `json:"else,omitempty"`
+}
+
+type LoopStmt struct {
+	Body []Stmt `json:"body"`
+}
+
+type BreakStmt struct{}
+
+type ContinueStmt struct{}
+
+type ReturnStmt struct {
+	Value *Expr `json:"value,omitempty"`
+}
+
+// Expr is a structured expression node.
+type Expr struct {
+	Kind   string       `json:"kind"`
+	Lit    *LiteralExpr `json:"lit,omitempty"`
+	Var    *VarExpr     `json:"var,omitempty"`
+	Call   *CallExpr    `json:"call,omitempty"`
+	Binary *BinaryExpr  `json:"binary,omitempty"`
+	Unary  *UnaryExpr   `json:"unary,omitempty"`
+}
+
+type LiteralExpr struct {
+	Kind  string `json:"kind"`
+	Value string `json:"value"`
+}
+
+type VarExpr struct {
+	Name string `json:"name"`
+}
+
+type CallExpr struct {
+	Name string `json:"name"`
+	Args []Expr `json:"args,omitempty"`
+}
+
+type BinaryExpr struct {
+	Op    string `json:"op"`
+	Left  Expr   `json:"left"`
+	Right Expr   `json:"right"`
+}
+
+type UnaryExpr struct {
+	Op   string `json:"op"`
+	Expr Expr   `json:"expr"`
 }
 
 // PolicyDecl defines a policy block.

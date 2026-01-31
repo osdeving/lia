@@ -196,6 +196,32 @@ module_item    := type_decl | enum_decl | port_decl | usecase_decl
 
 hole_decl      := "hole" Ident ":" contract_expr ";" ;
 
+usecase_decl   := "usecase" Ident "(" [ params ] ")" effects_decl? "{" { stmt } "}" ;
+params         := Ident { "," Ident } ;
+effects_decl   := "effects" Ident { "," Ident } ;
+
+stmt           := let_stmt | assign_stmt | if_stmt | loop_stmt
+               | break_stmt | continue_stmt | return_stmt | expr_stmt ;
+let_stmt       := "let" Ident "=" expr ";" ;
+assign_stmt    := Ident "=" expr ";" ;
+if_stmt        := "if" expr "{" { stmt } "}" [ "else" "{" { stmt } "}" ] ;
+loop_stmt      := "loop" "{" { stmt } "}" ;
+break_stmt     := "break" ";" ;
+continue_stmt  := "continue" ";" ;
+return_stmt    := "return" [ expr ] ";" ;
+expr_stmt      := expr ";" ;
+
+expr           := or_expr ;
+or_expr        := and_expr { "or" and_expr } ;
+and_expr       := equality_expr { "and" equality_expr } ;
+equality_expr  := rel_expr { ("==" | "!=") rel_expr } ;
+rel_expr       := add_expr { ("<" | "<=" | ">" | ">=") add_expr } ;
+add_expr       := mul_expr { ("+" | "-") mul_expr } ;
+mul_expr       := unary_expr { ("*" | "/") unary_expr } ;
+unary_expr     := ("not" | "-") unary_expr | primary ;
+primary        := Ident "(" [ args ] ")" | Ident | Literal | "(" expr ")" ;
+args           := expr { "," expr } ;
+
 // docblocks
 
 doc            := "/**" { doc_line } "*/" ;

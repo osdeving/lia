@@ -11,6 +11,7 @@ This repository is a toolchain + spec for LIA. Use the layers below to navigate.
 - `docs/guide/cli.md` — commands and examples
 - `docs/guide/repro.md` — reproducibility model (@gen + prompt tape)
 - `docs/guide/what-we-have.md` — quick checklist of what exists
+- `docs/guide/mcp.md` — MCP server (playground)
 
 ## 2. Core concepts
 - `docs/guide/ir.md` — IR/AST structure and canonical JSON
@@ -26,3 +27,6 @@ This repository is a toolchain + spec for LIA. Use the layers below to navigate.
 
 ## 4. Roadmap
 - `docs/roadmap.md` — what exists vs what does not yet exist
+
+## 5. ADRs
+- `docs/adr/0001-toolchain-stack.md` — stack decisions (parser, canonicalization, policy)
