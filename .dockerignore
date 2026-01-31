@@ -1,0 +1,12 @@
+.git
+.gitignore
+.gemini
+bin
+dist
+*.liao
+*.lial
+*.log
+docker-compose.yml
+Dockerfile
+README.md
+vendor
