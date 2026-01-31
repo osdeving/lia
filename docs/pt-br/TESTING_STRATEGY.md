@@ -4,25 +4,20 @@
 
 Este documento descreve a estratégia abrangente de testes para o toolchain LIA e a integração com LLMs locais para testes de geração.
 
-## Análise de Cobertura de Testes Atual
+## Metas de Cobertura
 
-### Antes da Implementação (Baseline)
+Use relatórios de cobertura para acompanhar progresso e evitar regressões:
 
-- **Cobertura Total**: 0%
-- **Pacotes Testados**: 0/11
-- **Lacunas Críticas**:
-  - `parser`: Sem testes para lógica de parsing
-  - `linker`: Sem testes para resolução de símbolo
-  - `codec`: Sem testes para serialização/hashing
-  - `policy`: Sem testes para enforcement de constraints
-  - `repro`: Sem testes para reprodutibilidade
+```bash
+go test ./internal/... -coverprofile=coverage.out
+go tool cover -func=coverage.out
+```
 
-### Após Implementação (Meta)
+Metas (ver `AGENT.md`):
 
-- **Parser**: ~85% de cobertura (parsing básico, casos extremos, tratamento de erros)
-- **Linker**: ~80% de cobertura (merging, decision log, hashing)
-- **Codec**: ~90% de cobertura (serialização, JSON canônico,hashing)
-- **LLMGen**: ~75% de cobertura (mock provider, testes de integração)
+- Parser: >85%
+- Linker: >85%
+- Novos pacotes: >75%
 
 ## Arquitetura de Testes
 

@@ -18,10 +18,10 @@ For significant changes (architecture, LIA language changes), we follow the **Sp
    - Create an issue `RFC: [Title]` describing the problem and proposal.
    - Open discussion with the community.
 2. **ADR (Architecture Decision Record)**:
-   - If approved, formalize in `docs/ADR.md` (or `docs/adrs/` folder).
+   - If approved, formalize in `docs/adr/` (one file per decision).
    - Defines the contract before code.
 3. **Spec Update**:
-   - Update `docs/spec/` with the new grammar/behavior.
+   - Update `docs/en/spec/` and `docs/pt-br/spec/` with the new grammar/behavior.
 4. **Implementation**:
    - Start coding only after Spec is approved.
 
@@ -37,6 +37,9 @@ Every PR description must contain:
 - [ ] Fix
 - [ ] Docs
 - [ ] Spec
+- [ ] Test
+- [ ] Refactor
+- [ ] Perf
 
 ## Context
 What changed and why? (Link to Issue/RFC)
@@ -46,6 +49,7 @@ What changed and why? (Link to Issue/RFC)
 - [ ] Tests added (`go test ./...`)
 - [ ] Linting passed (`golangci-lint run`)
 - [ ] Reproducibility verified (if AI generated)
+- [ ] Coverage did not decrease
 ```
 
 ### Review Policy

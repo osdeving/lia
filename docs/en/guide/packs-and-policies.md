@@ -6,7 +6,7 @@ A pack is a versioned collection of modules and policies.
 
 In v0.1, packs are **pseudo-LIA** files parsed by a minimal pack parser:
 
-- see `docs/spec/packs/*.lia`
+- see `docs/en/spec/packs/*.lia` (or `docs/pt-br/spec/packs/*.lia`)
 - the parser supports: `pack`, `policy`, `constraint`
 
 ## Profiles

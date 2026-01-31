@@ -73,16 +73,12 @@ docker run --rm --network=host lia-test go test ./internal/llmgen -v
 
 ## Current Coverage Status
 
-| Package | Coverage | Status |
-|---------|----------|--------|
-| parser | 96.4% | ✅ Excellent |
-| linker | 78.4% | ✅ Good |
-| codec | 43.9% | ⚠️ Needs improvement |
-| llmgen | 16.5% | ⚠️ Basic coverage |
-| check | 0.0% | ❌ No tests |
-| cli | 0.0% | ❌ No tests |
-| policy | 0.0% | ❌ No tests |
-| repro | 0.0% | ❌ No tests |
+Coverage changes frequently. Generate a fresh report:
+
+```bash
+go test ./internal/... -coverprofile=coverage.out
+go tool cover -func=coverage.out
+```
 
 ## Next Steps
 

@@ -63,23 +63,19 @@ lia/
   pkg/
     api/
   docs/
-    guide/
-      getting-started.md
-      pipeline.md
-      cli.md
-      repro.md
-      ir.md
-      packs-and-policies.md
-      linker.md
-    spec/
-      lia-v0.1.md
-      packs/
-        arch-baseline.lia
-        security-baseline.lia
-      toolchain-checks.md
-    INDEX.md
-    overview.md
-    roadmap.md
+    adr/
+    en/
+      guide/
+      spec/
+      INDEX.md
+      overview.md
+      roadmap.md
+    pt-br/
+      guide/
+      spec/
+      INDEX.md
+      overview.md
+      roadmap.md
   examples/
     order-service/
       project.lia
@@ -100,8 +96,8 @@ Comandos disponíveis (stubs iniciais):
 - `lia parse <file.lia> -o out.liao`
 - `lia check <file.liao>`
 - `lia link <inputs...> -o out.lial --decision-log out.lial.decision-log.json`
-- `lia check ... --pack-dir ./docs/spec/packs` (opcional)
-- `lia link ... --pack-dir ./docs/spec/packs` (opcional)
+- `lia check ... --pack-dir ./docs/pt-br/spec/packs` (ou `./docs/en/spec/packs`)
+- `lia link ... --pack-dir ./docs/pt-br/spec/packs` (ou `./docs/en/spec/packs`)
 - `lia explain <file.lial> --decision-log out.lial.decision-log.json`
 - `lia lower <file.lial> --target java|python -o out.java|out.py`
 - `lia replay <file.lial> --tape prompt-tape.json` (stub)
@@ -133,30 +129,35 @@ lia explain /tmp/order.lial --decision-log /tmp/order.lial.decision-log.json
 
 ## Documentação em camadas
 
-Comece por aqui:
+Comece por aqui (escolha o idioma):
 
-- **Índice geral:** `docs/INDEX.md`
-- **Visão geral (não técnica):** `docs/overview.md`
-- **MVP em 10 minutos:** `docs/guide/getting-started.md`
+- **Índice (pt-br):** `docs/pt-br/INDEX.md`
+- **Índice (en):** `docs/en/INDEX.md`
+- **Visão geral (pt-br):** `docs/pt-br/overview.md`
+- **Visão geral (en):** `docs/en/overview.md`
+- **MVP em 10 minutos (pt-br):** `docs/pt-br/guide/getting-started.md`
 
 Aprofundando por área:
 
-- **Pipeline:** `docs/guide/pipeline.md`
-- **CLI:** `docs/guide/cli.md`
-- **Reprodutibilidade:** `docs/guide/repro.md`
-- **IR/AST:** `docs/guide/ir.md`
-- **Packs/Policies:** `docs/guide/packs-and-policies.md`
-- **Linker:** `docs/guide/linker.md`
-- **Checklist rápido:** `docs/guide/what-we-have.md`
-- **Arquitetura do sistema:** `docs/architecture/system.md`
-- **O que existe vs não existe:** `docs/roadmap.md`
+- **Pipeline:** `docs/pt-br/guide/pipeline.md`
+- **CLI:** `docs/pt-br/guide/cli.md`
+- **Reprodutibilidade:** `docs/pt-br/guide/repro.md`
+- **IR/AST:** `docs/pt-br/guide/ir.md`
+- **Packs/Policies:** `docs/pt-br/guide/packs-and-policies.md`
+- **Linker:** `docs/pt-br/guide/linker.md`
+- **Checklist rápido:** `docs/pt-br/guide/what-we-have.md`
+- **Arquitetura do sistema:** `docs/pt-br/architecture/system.md`
+- **O que existe vs não existe:** `docs/pt-br/roadmap.md`
 
 Specs e packs:
 
-- Spec inicial: `docs/spec/lia-v0.1.md`
+- Spec inicial (pt-br): `docs/pt-br/spec/lia-v0.1.md`
+- Spec inicial (en): `docs/en/spec/lia-v0.1.md`
 - Rascunho histórico: `lia.md`
-- Packs MVP (pseudo-LIA): `docs/spec/packs/arch-baseline.lia`, `docs/spec/packs/security-baseline.lia`
-- Checklist do toolchain: `docs/spec/toolchain-checks.md`
+- Packs MVP (pt-br): `docs/pt-br/spec/packs/arch-baseline.lia`, `docs/pt-br/spec/packs/security-baseline.lia`
+- Packs MVP (en): `docs/en/spec/packs/arch-baseline.lia`, `docs/en/spec/packs/security-baseline.lia`
+- Checklist do toolchain (pt-br): `docs/pt-br/spec/toolchain-checks.md`
+- Checklist do toolchain (en): `docs/en/spec/toolchain-checks.md`
 
 ---
 

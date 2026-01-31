@@ -22,7 +22,7 @@ Welcome to the **LIA** development. As this is a critical AI infrastructure proj
 
 - **Reproducibility**: If you change the Parser or Linker, update `examples/order-service`.
 
-- **Docs First**: Change the specification in `docs/spec` before changing the Go code.
+- **Docs First**: Change the specification in `docs/en/spec` and `docs/pt-br/spec` before changing the Go code.
 
 - **@gen Blocks**: Any AI-generated artifact in the repository *must* have provenance metadata.
 
@@ -30,7 +30,7 @@ Welcome to the **LIA** development. As this is a critical AI infrastructure proj
 
 AI agents working in LIA should follow this flow:
 
-1. Read the specification in `docs/spec`.
+1. Read the specification in `docs/en/spec` (and keep `docs/pt-br/spec` in sync).
 
 2. Generate `.lia` or `.liao` files.
 

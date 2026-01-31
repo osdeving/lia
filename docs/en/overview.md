@@ -35,4 +35,4 @@ LIA moves these concerns into a compiler-like pipeline:
 - **Modularity:** object files link together safely.
 - **Policy-driven architecture:** rules are code, not text.
 
-If you want a 10-minute runnable MVP, go to `docs/guide/getting-started.md`.
+If you want a 10-minute runnable MVP, go to `docs/en/guide/getting-started.md`.

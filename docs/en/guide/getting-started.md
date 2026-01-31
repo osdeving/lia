@@ -4,7 +4,7 @@ This is the minimal end-to-end run that proves the toolchain works.
 
 ## Prereqs
 
-- Go 1.21+ (or current system Go)
+- Go 1.23+ (or current system Go)
 
 ## Run the MVP
 
@@ -12,11 +12,11 @@ This is the minimal end-to-end run that proves the toolchain works.
 # 1) parse .lia -> .liao
 go run ./cmd/lia parse examples/order-service/project.lia -o /tmp/order.liao
 
-# 2) validate (loads packs from ./docs/spec/packs by default)
-go run ./cmd/lia check /tmp/order.liao
+# 2) validate (use --pack-dir if you want packs)
+go run ./cmd/lia check /tmp/order.liao --pack-dir ./docs/en/spec/packs
 
 # 3) link .liao -> .lial + decision log
-go run ./cmd/lia link /tmp/order.liao -o /tmp/order.lial
+go run ./cmd/lia link /tmp/order.liao -o /tmp/order.lial --pack-dir ./docs/en/spec/packs
 
 # 4) lower (stub) -> Java
 go run ./cmd/lia lower /tmp/order.lial --target java -o /tmp/order.java
@@ -30,8 +30,8 @@ go run ./cmd/lia lower /tmp/order.lial --target java -o /tmp/order.java
 
 ## Known limitations in MVP
 
-- Parser is minimal (project/use pack/module/repro/tape only).
+- Parser is minimal (project/module/usecase subset; types/ports/adapters not yet).
 - Linker is a stub (no real symbol resolution yet).
 - SecurityBaseline rules are not enforced (warnings only).
 
-If you want the full conceptual model, read `docs/guide/pipeline.md`.
+If you want the full conceptual model, read `docs/en/guide/pipeline.md`.

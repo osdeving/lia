@@ -4,25 +4,20 @@
 
 This document outlines the comprehensive testing strategy for the LIA toolchain and the integration with local LLMs for generation testing.
 
-## Current Test Coverage Analysis
+## Coverage Targets
 
-### Before Implementation (Baseline)
+Use coverage reports to track progress and avoid regressions:
 
-- **Total Coverage**: 0%
-- **Tested Packages**: 0/11
-- **Critical Gaps**:
-  - `parser`: No tests for file parsing logic
-  - `linker`: No tests for symbol resolution
-  - `codec`: No tests for serialization/hashing
-  - `policy`: No tests for constraint enforcement
-  - `repro`: No tests for reproducibility
+```bash
+go test ./internal/... -coverprofile=coverage.out
+go tool cover -func=coverage.out
+```
 
-### After Implementation (Target)
+Targets (see `AGENT.md`):
 
-- **Parser**: ~85% coverage (basic parsing, edge cases, error handling)
-- **Linker**: ~80% coverage (merging, decision log, hashing)
-- **Codec**: ~90% coverage (serialization, canonical JSON, hashing)
-- **LLMGen**: ~75% coverage (mock provider, integration tests)
+- Parser: >85%
+- Linker: >85%
+- New packages: >75%
 
 ## Test Architecture
 

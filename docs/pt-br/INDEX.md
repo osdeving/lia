@@ -43,3 +43,7 @@
 ## Arquitetura
 
 - **[Sistema](architecture/system.md)**: Visão arquitetural do toolchain
+
+## ADRs
+
+- **[ADRs](../adr/README.md)**: Índice e convenções de ADR

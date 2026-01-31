@@ -42,7 +42,7 @@
 
 ### 2.2 Docs First
 
-- **Before changing code**, update the specification in `docs/spec/`.
+- **Before changing code**, update the specification in `docs/en/spec/` and `docs/pt-br/spec/`.
 - **Before adding a feature**, document it in the implementation plan.
 - **Use ADRs** (Architecture Decision Records) for significant decisions.
 
@@ -71,7 +71,7 @@
 - `spec/<scope>/<description>`: Changes to the LIA specification
   - Ex: `spec/grammar/effect-system`, `spec/policies/budget-constraints`
 - `docs/<scope>/<description>`: Documentation improvements
-  - Ex: `docs/guide/getting-started`, `docs/api/llmgen-integration`
+  - Ex: `docs/pt-br/guide/getting-started`, `docs/en/guide/cli`
 - `test/<scope>/<description>`: Adding/improving tests
   - Ex: `test/parser/edge-cases`, `test/integration/e2e-workflow`
 - `refactor/<scope>/<description>`: Refactors without behavioral changes
@@ -104,7 +104,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 Before creating a PR, **verify**:
 
-- [ ] Specification in `docs/spec/` is updated (if applicable)
+- [ ] Specification in `docs/en/spec/` and `docs/pt-br/spec/` is updated (if applicable)
 - [ ] Unit tests added/updated
 - [ ] `go test ./internal/... -cover` passes without errors
 - [ ] Parsed/Linker changes updated in `examples/`
@@ -205,7 +205,7 @@ LIA does not enforce Clean/Hexagonal, but **packs** can:
 **As an agent, respect project policies**:
 
 ```bash
-lia check mycode.liao --pack-dir ./docs/spec/packs
+lia check mycode.liao --pack-dir ./docs/pt-br/spec/packs  # or ./docs/en/spec/packs
 ```
 
 ### 6.2 Avoid Over-Engineering
@@ -274,11 +274,11 @@ Before submitting any change, **verify**:
 
 ## 9. ADDITIONAL RESOURCES
 
-- **LIA Specification**: `docs/spec/lia-v0.1.md`
-- **Manifesto**: `docs/LIA_MANIFESTO.md`
-- **Testing Guide**: `docs/TESTING_GUIDE.md`
-- **Testing Strategy**: `docs/TESTING_STRATEGY.md`
-- **Contribution**: `docs/CONTRIBUTING.md`
+- **LIA Specification**: `docs/pt-br/spec/lia-v0.1.md` (ou `docs/en/spec/lia-v0.1.md`)
+- **Manifesto**: `docs/pt-br/LIA_MANIFESTO.md` (ou `docs/en/LIA_MANIFESTO.md`)
+- **Testing Guide**: `docs/pt-br/TESTING_GUIDE.md` (ou `docs/en/TESTING_GUIDE.md`)
+- **Testing Strategy**: `docs/pt-br/TESTING_STRATEGY.md` (ou `docs/en/TESTING_STRATEGY.md`)
+- **Contribution**: `docs/pt-br/CONTRIBUTING.md` (ou `docs/en/CONTRIBUTING.md`)
 
 ---
 

@@ -5,7 +5,7 @@ This document is a plain checklist for contributors.
 ## We have (working now)
 
 - CLI entrypoint and commands
-- minimal parser for project/use pack/module
+- minimal parser for project/module/usecase (imperative subset)
 - canonical JSON encoder + hash
 - pack loader (pseudo-LIA packs)
 - minimal policy enforcement
@@ -14,12 +14,12 @@ This document is a plain checklist for contributors.
 
 ## We don't have (yet)
 
-- full parser (types, ports, usecases, adapters)
+- full parser (types, ports, adapters, full grammar)
 - real symbol resolution and merge in linker
 - capabilities / taint
-- real lowerers
+- real lowerers (multi-file codegen, target-specific runtimes)
 - plugin system
 
 ## How to prove it works
 
-Run `docs/guide/getting-started.md`.
+Run `docs/en/guide/getting-started.md`.
