@@ -4,7 +4,7 @@ Bem-vindo ao desenvolvimento do **LIA**. Como este é um projeto crítico de inf
 
 ## 1. Ciclo de Desenvolvimento
 
-1. **Branching**: Crie branches a partir da `main`.
+1. **Branching**: Crie branches a partir da `develop`.
     - `feat/...` para novas funcionalidades.
     - `fix/...` para correções.
     - `spec/...` para mudanças na especificação LIA.

@@ -4,7 +4,7 @@ Welcome to the **LIA** development. As this is a critical AI infrastructure proj
 
 ## 1. Development Cycle
 
-1. **Branching**: Create branches from `main`.
+1. **Branching**: Create branches from `develop`.
 
 - `feat/...` for new features.
 - `fix/...` for fixes.

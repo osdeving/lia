@@ -56,6 +56,8 @@ O **LIA (Linguagem Intermediária Assistida)** é um toolchain model-first para 
 
 ## 3. WORKFLOW DE CONTRIBUIÇÃO
 
+> **Nota**: Para detalhes completos sobre Roadmap, RFCs e Release, consulte [docs/pt-br/PROCESS.md](docs/pt-br/PROCESS.md).
+
 ### 3.1 Branch Naming Convention
 
 **Formato**: `<type>/<scope>/<short-description>`
