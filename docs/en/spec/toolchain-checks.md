@@ -42,7 +42,7 @@ Minimum checklist:
 
 1) **Packs (Profiles)**
 
-- Load packs referenced in the project (by default: `./docs/spec/packs` or `./packs`).
+- Load packs referenced in the project (default search: `./packs` and `./docs/spec/packs` if present; in this repo use `docs/en/spec/packs` or `docs/pt-br/spec/packs`).
 
 - Warn when policies are not applicable in v0.1 (e.g., capabilities/taint not yet modeled).
 

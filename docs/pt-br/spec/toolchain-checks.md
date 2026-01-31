@@ -30,7 +30,7 @@ Checklist mínimo:
    - Referências a `prompt_ref` devem existir no tape quando fornecido.
 
 6) **Packs (profiles)**
-   - Carregar packs referenciados no project (por default: `./docs/spec/packs` ou `./packs`).
+   - Carregar packs referenciados no project (busca padrão: `./packs` e `./docs/spec/packs` se existir; neste repo use `docs/pt-br/spec/packs` ou `docs/en/spec/packs`).
    - Avisar quando políticas não são aplicáveis no v0.1 (ex.: capabilities/taint ainda não modelados).
 
 ## lia link (resolução global)

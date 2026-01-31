@@ -16,14 +16,14 @@ Bem-vindo ao desenvolvimento do **LIA**. Como este é um projeto crítico de inf
 ## 2. Regras de Pull Request (PR)
 
 - **Reprodutibilidade**: Se você mudar o Parser ou Linker, atualize o `examples/order-service`.
-- **Docs First**: Mude a especificação em `docs/spec` antes de mudar o código Go.
+- **Docs First**: Mude a especificação em `docs/pt-br/spec` e `docs/en/spec` antes de mudar o código Go.
 - **Blocos @gen**: Qualquer artefato gerado por IA no repositório *deve* ter metadados de proveniência.
 
 ## 3. Workflow de Geração de Código
 
 Agentes de IA trabalhando no LIA devem seguir este fluxo:
 
-1. Ler a especificação em `docs/spec`.
+1. Ler a especificação em `docs/pt-br/spec` (e manter `docs/en/spec` em sync).
 2. Gerar arquivos `.lia` ou `.liao`.
 3. Validar usando `lia check`.
 4. Garantir que o `prompt-tape.json` local está atualizado.

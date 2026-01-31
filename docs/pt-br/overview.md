@@ -44,4 +44,4 @@ O LIA move essas preocupações para um pipeline semelhante a um compilador:
 - **Modularidade:** arquivos objeto se linkam de forma segura.
 - **Arquitetura orientada a políticas:** regras são código, não texto.
 
-Se você quer um MVP executável de 10 minutos, vá para `docs/guide/getting-started.md`.
+Se você quer um MVP executável de 10 minutos, vá para `docs/pt-br/guide/getting-started.md`.

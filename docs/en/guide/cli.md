@@ -5,7 +5,7 @@
 - `lia parse <file.lia> -o out.liao`
   - minimal parser; outputs canonical JSON
 
-- `lia check <file.liao>`
+- `lia check <file.liao|file.lial>`
   - runs local validation + pack rules (subset)
 
 - `lia link <inputs...> -o out.lial --decision-log out.lial.decision-log.json`
@@ -24,11 +24,12 @@
 
 Commands that validate or link can load packs:
 
-- default search paths: `./docs/spec/packs` and `./packs`
+- default search paths: `./packs` and `./docs/spec/packs` (if present)
+- in this repo, packs live under `docs/en/spec/packs` and `docs/pt-br/spec/packs`
 - override/add paths: `--pack-dir <path>` (repeatable)
 
 Example:
 
 ```bash
-lia check out.liao --pack-dir ./docs/spec/packs
+lia check out.liao --pack-dir ./docs/en/spec/packs
 ```
