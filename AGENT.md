@@ -1,32 +1,32 @@
-# AGENT.md — Guidelines para Agentes de IA trabalhando no LIA
+# AGENT.md — Guidelines for AI Agents Working on LIA
 
-> Este documento define as regras e melhores práticas para agentes de IA (LLMs) que contribuem com o projeto LIA.
-
----
-
-## 1. CONTEXTO E MISSÃO
-
-O **LIA (Linguagem Intermediária Assistida)** é um toolchain model-first para geração de software por IA. Diferente de linguagens convencionais, o LIA foi desenhado para ser:
-
-- **Gerado por modelos**: Sintaxe e semântica otimizadas para LLMs
-- **Verificável**: Determinismo e reprodutibilidade por construção
-- **Linkável**: Módulos gerados em paralelo podem ser unidos via linker
-
-**Sua missão como agente**: Contribuir com código, testes e documentação mantendo os princípios de reprodutibilidade e qualidade do projeto.
+> This document defines the rules and best practices for AI agents (LLMs) contributing to the LIA project.
 
 ---
 
-## 2. PRINCÍPIOS OBRIGATÓRIOS
+## 1. CONTEXT AND MISSION
 
-### 2.1 Reprodutibilidade First
+**LIA (Language Intermediate Assisted)** is a model-first toolchain for AI software generation. Unlike conventional languages, LIA was designed to be:
 
-- **Toda geração de código** deve incluir um bloco `@gen` com metadados:
-  - `prompt_ref`: Referência para o prompt usado
-  - `prompt_hash`: Hash SHA-256 do prompt
-  - `model_id`: Identificação do modelo (ex: `gpt-4o-mini`, `qwen2.5-coder:7b`)
-  - `model_params`: Parâmetros como `temperature`, `top_p`, `seed`
+- **Model-generated**: Syntax and semantics optimized for LLMs.
+- **Verifiable**: Determinism and reproducibility by construction.
+- **Linkable**: Modules generated in parallel can be merged via linker.
+
+**Your mission as an agent**: Contribute code, tests, and documentation while maintaining the project's reproducibility and quality principles.
+
+---
+
+## 2. MANDATORY PRINCIPLES
+
+### 2.1 Reproducibility First
+
+- **Every code generation** must include a `@gen` block with metadata:
+  - `prompt_ref`: Reference to the prompt used.
+  - `prompt_hash`: SHA-256 hash of the prompt.
+  - `model_id`: Model identification (e.g., `gpt-4o-mini`, `qwen2.5-coder:7b`).
+  - `model_params`: Parameters such as `temperature`, `top_p`, `seed`.
   
-- **Exemplo de bloco @gen em LIA**:
+- **Example of @gen block in LIA**:
 
   ```lia
   @gen {
@@ -40,58 +40,58 @@ O **LIA (Linguagem Intermediária Assistida)** é um toolchain model-first para 
   }
   ```
 
-### 2.2 Documentação First
+### 2.2 Docs First
 
-- **Antes de mudar o código**, atualize a especificação em `docs/spec/`.
-- **Antes de adicionar uma feature**, documente no plano de implementação.
-- **Use ADRs** (Architecture Decision Records) para decisões importantes.
+- **Before changing code**, update the specification in `docs/spec/`.
+- **Before adding a feature**, document it in the implementation plan.
+- **Use ADRs** (Architecture Decision Records) for significant decisions.
 
-### 2.3 Testes são Inegociáveis
+### 2.3 Tests are Non-Negotiable
 
-- **Todo código Go deve ter testes unitários** (`*_test.go`).
-- **Coverage mínimo**: 75% para novos pacotes.
-- **Linker e Parser**: Devem manter >85% de cobertura.
+- **All Go code must have unit tests** (`*_test.go`).
+- **Minimum Coverage**: 75% for new packages.
+- **Linker and Parser**: Must maintain >85% coverage.
 
 ---
 
-## 3. WORKFLOW DE CONTRIBUIÇÃO
+## 3. CONTRIBUTION WORKFLOW
 
-> **Nota**: Para detalhes completos sobre Roadmap, RFCs e Release, consulte [docs/pt-br/PROCESS.md](docs/pt-br/PROCESS.md).
+> **Note**: For full details on Roadmap, RFCs, and Release, refer to [docs/en/PROCESS.md](docs/en/PROCESS.md).
 
 ### 3.1 Branch Naming Convention
 
-**Formato**: `<type>/<scope>/<short-description>`
+**Format**: `<type>/<scope>/<short-description>`
 
-#### Tipos de Branch
+#### Branch Types
 
-- `feat/<scope>/<description>`: Novas funcionalidades
+- `feat/<scope>/<description>`: New features
   - Ex: `feat/parser/add-hole-support`, `feat/linker/multi-candidate-selection`
-- `fix/<scope>/<description>`: Correções de bugs
+- `fix/<scope>/<description>`: Bug fixes
   - Ex: `fix/codec/canonical-json-sorting`, `fix/linker/hash-determinism`
-- `spec/<scope>/<description>`: Mudanças na especificação LIA
+- `spec/<scope>/<description>`: Changes to the LIA specification
   - Ex: `spec/grammar/effect-system`, `spec/policies/budget-constraints`
-- `docs/<scope>/<description>`: Melhorias em documentação
+- `docs/<scope>/<description>`: Documentation improvements
   - Ex: `docs/guide/getting-started`, `docs/api/llmgen-integration`
-- `test/<scope>/<description>`: Adição/melhoria de testes
+- `test/<scope>/<description>`: Adding/improving tests
   - Ex: `test/parser/edge-cases`, `test/integration/e2e-workflow`
-- `refactor/<scope>/<description>`: Refatorações sem mudança de comportamento
+- `refactor/<scope>/<description>`: Refactors without behavioral changes
   - Ex: `refactor/codec/extract-sorting`, `refactor/cli/command-structure`
-- `perf/<scope>/<description>`: Otimizações de performance
+- `perf/<scope>/<description>`: Performance optimizations
   - Ex: `perf/linker/graph-resolution`, `perf/parser/streaming-mode`
 
-#### Scopes Válidos
+#### Valid Scopes
 
 - `parser`, `linker`, `codec`, `llmgen`, `policy`, `repro`, `cli`, `check`, `lower`
 - `spec`, `docs`, `examples`, `packs`
 
-#### Regras
+#### Rules
 
-- Use kebab-case (palavras separadas por hífen)
-- Máximo de 50 caracteres no total
-- Seja descritivo mas conciso
-- Se relacionado a issue, use: `fix/linker/issue-123-symbol-collision`
+- Use kebab-case (hyphen-separated words)
+- Maximum 50 characters total
+- Be descriptive but concise
+- If related to an issue, use: `fix/linker/issue-123-symbol-collision`
 
-### 3.2 Commits Convencionais
+### 3.2 Conventional Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -102,41 +102,41 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### 3.3 Pull Request Checklist
 
-Antes de criar um PR, **verifique**:
+Before creating a PR, **verify**:
 
-- [ ] A especificação em `docs/spec/` está atualizada (se aplicável)
-- [ ] Testes unitários foram adicionados/atualizados
-- [ ] `go test ./internal/... -cover` passa sem erros
-- [ ] Se mudou Parser/Linker, atualizou exemplo em `examples/`
-- [ ] Se for geração de IA, incluiu bloco `@gen` ou metadados no commit
+- [ ] Specification in `docs/spec/` is updated (if applicable)
+- [ ] Unit tests added/updated
+- [ ] `go test ./internal/... -cover` passes without errors
+- [ ] Parsed/Linker changes updated in `examples/`
+- [ ] AI-generated artifacts include `@gen` block or metadata in commit
 
 ---
 
-## 4. ESTRUTURA DE CÓDIGO GO
+## 4. GO CODE STRUCTURE
 
-### 4.1 Organização de Pacotes
+### 4.1 Package Organization
 
 ```
 internal/
-  parser/     → Parsing de .lia para IR
-  linker/     → Resolução de símbolos e linking
-  codec/      → Serialização canônica e hashing
-  llmgen/     → Integração com LLMs (Ollama, etc.)
-  policy/     → Enforcement de constraints
-  repro/      → Metadados de reprodutibilidade
+  parser/     → Parsing .lia to IR
+  linker/     → Symbol resolution and linking
+  codec/      → Canonical serialization and hashing
+  llmgen/     → Integration with LLMs (Ollama, etc.)
+  policy/     → Constraints enforcement
+  repro/      → Reproducibility metadata
 ```
 
-### 4.2 Padrões de Código
+### 4.2 Code Standards
 
-- **Siga [Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md)**
-- **Erros tipados**: Use `%w` para wrapping
-- **Exports mínimos**: Mantenha interfaces pequenas
-- **Canonicalização**: Use `codec.SortAll()` antes de serializar
+- **Follow [Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md)**
+- **Typed Errors**: Use `%w` for wrapping
+- **Minimal Exports**: Keep interfaces small
+- **Canonicalization**: Use `codec.SortAll()` before serializing
 
-### 4.3 Testes
+### 4.3 Tests
 
 ```go
-// Nomenclatura: Test<FunctionName>_<Scenario>
+// Naming: Test<FunctionName>_<Scenario>
 func TestParseFile_BasicProject(t *testing.T) {
     // Arrange
     content := `project TestProj { ... }`
@@ -149,17 +149,17 @@ func TestParseFile_BasicProject(t *testing.T) {
     if err != nil {
         t.Fatalf("ParseFile failed: %v", err)
     }
-    // ... demais assertions
+    // ... other assertions
 }
 ```
 
 ---
 
-## 5. GERAÇÃO DE CÓDIGO LIA
+## 5. LIA CODE GENERATION
 
-### 5.1 Uso do LLMGen
+### 5.1 Using LLMGen
 
-Se você for **usar o LIA para gerar LIA** (meta-geração):
+If you are **using LIA to generate LIA** (meta-generation):
 
 ```go
 provider := llmgen.NewOllamaProvider("http://localhost:11434")
@@ -174,70 +174,70 @@ module, meta, err := gen.GenerateLIAModule(ctx, llmgen.ModuleSpec{
 })
 ```
 
-### 5.2 Prompts Estruturados
+### 5.2 Structured Prompts
 
-Ao criar prompts para gerar LIA:
+When creating prompts to generate LIA:
 
-- **Seja explícito sobre roles**: `"Create a domain module (no IO effects)"`
-- **Inclua constraints**: `"Must not depend on adapters"`
-- **Forneça contexto**: Packs usados, estilos de arquitetura
+- **Be explicit about roles**: `"Create a domain module (no IO effects)"`
+- **Include constraints**: `"Must not depend on adapters"`
+- **Provide context**: Used packs, architecture styles
 
-### 5.3 Validação Pós-Geração
+### 5.3 Post-Generation Validation
 
-Após gerar código LIA:
+After generating LIA code:
 
 1. **Parse**: `lia parse output.lia -o output.liao`
 2. **Check**: `lia check output.liao`
 3. **Link**: `lia link output.liao -o linked.lial`
-4. **Verificar hash**: O hash do `.lial` deve ser determinístico
+4. **Verify hash**: The `.lial` hash must be deterministic
 
 ---
 
-## 6. CONSTRAINTS E BOAS PRÁTICAS
+## 6. CONSTRAINTS AND BEST PRACTICES
 
 ### 6.1 Domain-Driven Design (via Packs)
 
-O LIA não impõe Clean/Hexagonal, mas os **packs** podem:
+LIA does not enforce Clean/Hexagonal, but **packs** can:
 
-- `HexCore@1.0.0`: Impõe regras hexagonais via policies
-- `LayeredArch@1.0.0`: Impõe camadas tradicionais
+- `HexCore@1.0.0`: Enforces hexagonal rules via policies
+- `LayeredArch@1.0.0`: Enforces traditional layers
 
-**Como agente, respeite as policies do projeto**:
+**As an agent, respect project policies**:
 
 ```bash
 lia check mycode.liao --pack-dir ./docs/spec/packs
 ```
 
-### 6.2 Evite Over-Engineering
+### 6.2 Avoid Over-Engineering
 
-- **Budgets**: Alguns projetos têm limites de camadas/módulos.
-- **Simplicidade**: Se o projeto é marcado como "simple", não gere arquitetura complexa.
+- **Budgets**: Some projects have layer/module limits.
+- **Simplicity**: If the project is marked "simple", do not generate complex architecture.
 
-### 6.3 Nomeação Canônica
+### 6.3 Canonical Naming
 
-- **Módulos**: `snake_case` ou `dotted.hierarchy` (ex: `orders.core`)
-- **Tipos**: `PascalCase` (ex: `OrderId`, `PaymentStatus`)
-- **Holes**: `hole_<description>` (ex: `hole_user_repository`)
+- **Modules**: `snake_case` or `dotted.hierarchy` (e.g., `orders.core`)
+- **Types**: `PascalCase` (e.g., `OrderId`, `PaymentStatus`)
+- **Holes**: `hole_<description>` (e.g., `hole_user_repository`)
 
 ---
 
-## 7. INTEGRAÇÃO COM OLLAMA
+## 7. INTEGRATION WITH OLLAMA
 
-Se você for um agente **executando localmente** e precisar testar geração:
+If you are an agent **running locally** and need to test generation:
 
 ### 7.1 Setup
 
 ```bash
-# Instalar Ollama
+# Install Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Baixar modelo de código
+# Pull code model
 ollama pull qwen2.5-coder:7b
 ```
 
-### 7.2 Configuração
+### 7.2 Configuration
 
-Crie `.env.local`:
+Create `.env.local`:
 
 ```bash
 LIA_LLM_PROVIDER=ollama
@@ -246,53 +246,53 @@ LIA_LLM_MODEL=qwen2.5-coder:7b
 LIA_LLM_TEMPERATURE=0.1
 ```
 
-### 7.3 Testes
+### 7.3 Tests
 
 ```bash
-# Rode testes com mock (rápido, sem LLM)
+# Run tests with mock (fast, no LLM)
 go test ./internal/llmgen -v
 
-# Rode testes com LLM real (requer Ollama rodando)
+# Run tests with real LLM (requires Ollama running)
 go test ./internal/llmgen -v -tags=llm_integration
 ```
 
 ---
 
-## 8. CHECKLIST PRÉ-COMMIT (AGENTES)
+## 8. PRE-COMMIT CHECKLIST (AGENTS)
 
-Antes de submeter qualquer mudança, **verifique**:
+Before submitting any change, **verify**:
 
-- [ ] O código compila: `go build ./...`
-- [ ] Testes passam: `go test ./internal/... -cover`
-- [ ] Cobertura não diminuiu (use `go tool cover`)
-- [ ] Documentação atualizada (se aplicável)
-- [ ] Bloco `@gen` presente em artefatos gerados por IA
-- [ ] Commit message segue Conventional Commits
-- [ ] Nenhuma informação sensível (API keys, secrets) no código
+- [ ] Code compiles: `go build ./...`
+- [ ] Tests pass: `go test ./internal/... -cover`
+- [ ] Coverage did not decrease (use `go tool cover`)
+- [ ] Documentation updated (if applicable)
+- [ ] `@gen` block present in AI-generated artifacts
+- [ ] Commit message follows Conventional Commits
+- [ ] No sensitive info (API keys, secrets) in code
 
 ---
 
-## 9. RECURSOS ADICIONAIS
+## 9. ADDITIONAL RESOURCES
 
-- **Especificação LIA**: `docs/spec/lia-v0.1.md`
+- **LIA Specification**: `docs/spec/lia-v0.1.md`
 - **Manifesto**: `docs/LIA_MANIFESTO.md`
-- **Guia de Testes**: `docs/TESTING_GUIDE.md`
-- **Estratégia de Testes**: `docs/TESTING_STRATEGY.md`
-- **Contribuição**: `docs/CONTRIBUTING.md`
+- **Testing Guide**: `docs/TESTING_GUIDE.md`
+- **Testing Strategy**: `docs/TESTING_STRATEGY.md`
+- **Contribution**: `docs/CONTRIBUTING.md`
 
 ---
 
-## 10. FILOSOFIA MODEL-FIRST
+## 10. MODEL-FIRST PHILOSOPHY
 
-**Lembre-se**: O LIA não é uma linguagem para humanos escreverem à mão. Ele é desenhado para:
+**Remember**: LIA is not a language for humans to write by hand. It is designed for:
 
-1. **Modelos gerarem** (você!)
-2. **Máquinas validarem** (linker, checker)
-3. **Humanos auditarem** (via decision logs e prompt tapes)
+1. **Models to generate** (you!)
+2. **Machines to validate** (linker, checker)
+3. **Humans to audit** (via decision logs and prompt tapes)
 
-Sua contribuição como agente é **gerar artefatos verificáveis e reprodutíveis**, não código "bonito" para leitura humana.
+Your contribution as an agent is to **generate verifiable and reproducible artifacts**, not "pretty" code for human reading.
 
 ---
 
-**Última Atualização**: 2026-01-31  
-**Versão do LIA**: 0.1 (pré-alpha)
+**Last Update**: 2026-01-31
+**LIA Version**: 0.1 (pre-alpha)
