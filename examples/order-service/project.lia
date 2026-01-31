@@ -1,0 +1,12 @@
+project OrderSvc {
+  repro strict;
+  tape prompt_tape "./prompt-tape.json";
+
+  use pack ArchBaseline@0.1.0;
+  use pack SecurityBaseline@0.1.0;
+
+  module orders.core as domain {
+    enum OrderStatus { NEW, PAID, CANCELLED };
+    type OrderId = String where nonEmpty;
+  }
+}

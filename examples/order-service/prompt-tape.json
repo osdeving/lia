@@ -1,0 +1,16 @@
+{
+  "version": "0.1",
+  "prompts": [
+    {
+      "ref": "p-001",
+      "body": "Generate the orders domain module for OrderSvc.",
+      "context_refs": [
+        "spec:lia-v0.1"
+      ],
+      "params": [
+        {"key": "temp", "value": "0.1"},
+        {"key": "top_p", "value": "0.9"}
+      ]
+    }
+  ]
+}
