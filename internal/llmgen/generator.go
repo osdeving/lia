@@ -102,7 +102,7 @@ func (g *Generator) recordPrompt(prompt string) string {
 
 	// Append to tape file if configured
 	if g.TapeFile != "" {
-		g.appendToTape(ref, prompt)
+		_ = g.appendToTape(ref, prompt) // Error logged but not fatal for generation
 	}
 
 	return ref
