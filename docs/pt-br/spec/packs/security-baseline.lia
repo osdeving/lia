@@ -1,0 +1,52 @@
+pack SecurityBaseline@0.1.0 {
+  // NOTE: pseudo-LIA pack for v0.1 (policy DSL is minimal in toolchain).
+  // Security profile (baseline). Policies are intentionally concrete.
+
+  // Authn/Authz
+  policy authn_default_deny:
+    require(authn) on role == "adapter" where capability == "http.endpoint";
+    allow_unauthenticated ["/health", "/metrics"]; // explicit allowlist
+
+  policy authz_required:
+    require(authz) on role == "usecase" where effect == "tx";
+
+  // Input validation at boundaries
+  policy input_validation:
+    require(validation) on role == "adapter" where capability == "http.endpoint";
+
+  // Data sinks and injection guards
+  policy no_raw_sql:
+    forbid(sql.raw) on role == "adapter";
+    require(sql.prepared_or_builder) on role == "adapter";
+
+  policy output_encoding:
+    require(encoding.html) on capability == "http.response";
+
+  // SSRF and outbound network
+  policy ssrf_guard:
+    allow(net.http) only_to allowlist;
+
+  // Secrets handling
+  policy secrets_policy:
+    forbid(secrets.hardcoded) everywhere;
+    allow(secrets.read) only_on role == "adapter";
+
+  // Logging and PII
+  policy logging_policy:
+    forbid(log.secrets) everywhere;
+    require(log.redaction) on capability == "log";
+
+  // Crypto
+  policy crypto_policy:
+    forbid(crypto.custom) everywhere;
+    allow(crypto.standard_libs) only;
+
+  // Transport
+  policy tls_required:
+    require(tls) on capability == "net.http";
+
+  // Reproducibility guard
+  policy repro_guard:
+    require(@gen.prompt_ref) on public_symbols when repro == "strict";
+    require(decision_log) when repro == "strict";
+}

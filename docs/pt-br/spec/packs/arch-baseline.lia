@@ -1,0 +1,26 @@
+pack ArchBaseline@0.1.0 {
+  // NOTE: pseudo-LIA pack for v0.1 (policy DSL is minimal in toolchain).
+  // Architecture profile: hexagonal-ish by policy, not by core.
+
+  // Roles (vocabulary extension)
+  policy roles:
+    allow_roles ["domain", "usecase", "port", "adapter", "wiring", "policy"];
+
+  // Dependency direction
+  constraint no_domain_adapter: forbid(depends_on role == "adapter") when role == "domain";
+  constraint no_domain_wiring: forbid(depends_on role == "wiring") when role == "domain";
+  constraint no_usecase_adapter: forbid(depends_on role == "adapter") when role == "usecase";
+  constraint wiring_only_composition: allow(depends_on any) when role == "wiring";
+
+  // Effects boundaries
+  constraint domain_pure: forbid(effect io) when role == "domain";
+  constraint domain_no_tx: forbid(effect tx) when role == "domain";
+
+  // Ports are pure contracts
+  constraint port_no_io: forbid(effect io) when role == "port";
+
+  // Budgets (anti over-engineering)
+  policy budgets:
+    max_modules 30;
+    max_deps_per_module 12;
+}

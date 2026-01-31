@@ -21,6 +21,7 @@
   - placeholder for future replay
 
 ## Pack loading
+
 Commands that validate or link can load packs:
 
 - default search paths: `./docs/spec/packs` and `./packs`
