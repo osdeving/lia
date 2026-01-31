@@ -30,6 +30,7 @@ A **LIA (Linguagem Intermediária Assistida)** é **uma linguagem/IR e um sistem
 ## Go-first toolchain
 
 Este repositório é o toolchain da LIA em **Go**, cobrindo:
+
 - AST/IR + serialização canônica
 - parser v0.1 (minimalista)
 - check/constraints (base)

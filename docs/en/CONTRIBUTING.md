@@ -16,6 +16,8 @@ Welcome to the **LIA** development. As this is a critical AI infrastructure proj
 
 1. **Testing**: Every PR must pass `go test ./...`.
 
+1. **Linting**: Code must pass `golangci-lint` (check with `golangci-lint run`).
+
 ## 2. Pull Request (PR) Rules
 
 - **Reproducibility**: If you change the Parser or Linker, update `examples/order-service`.
