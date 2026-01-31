@@ -35,5 +35,6 @@ LIA is more than a language; it is a system with multiple subsystems.
 `.lial` -> `lower` -> target code
 
 ## Current reality
+
 - Several subsystems are present only as MVP skeletons.
 - The boundaries are already clear, so we can grow each subsystem independently.
