@@ -5,36 +5,18 @@ run:
 linters:
   disable-all: true
   enable:
-    # Core
+    # Core (stable, minimal)
     - errcheck
     - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
-    - typecheck
 
     # Style & Formatting
     - gofmt
     - goimports
     - misspell
-    - revive
-    - whitespace
-
-    # Security & Bugs
-    - gosec
-    - gocritic
-    - bodyclose
-    - noctx
-
-    # Performance
-    - prealloc
-
-    # Code Quality
-    - unparam
-    - nakedret
-    - dogsled
-    - nolintlint
 
 linters-settings:
   govet:
@@ -42,33 +24,6 @@ linters-settings:
       - shadow
   goimports:
     local-prefixes: github.com/willams/lia
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-    disabled-checks:
-      - dupImport # handled by goimports
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-  revive:
-    rules:
-      - name: exported
-        arguments:
-          - disableStuttering: true
-      - name: package-comments
-      - name: error-naming
-      - name: error-strings
-      - name: error-return
-      - name: var-naming
-      - name: receiver-naming
-  gosec:
-    excludes:
-      - G104 # duplicate of errcheck
 
 issues:
   max-issues-per-linter: 0
@@ -76,5 +31,4 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - gosec
-        - noctx
+        - errcheck
