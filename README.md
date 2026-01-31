@@ -3,7 +3,7 @@
 > **Status:** pré-alpha / design-first (spec em evolução)
 > **Propósito:** tornar geração de software por LLMs **mais confiável, modular, verificável e reproduzível**.
 
-A **LIA (Linguagem Intermediária Assistida)** é uma linguagem/IR intermediária desenhada para ser **produzida e consumida principalmente por modelos de linguagem (LLMs)** e agentes. Em vez de gerar código final direto (Java/Python/etc.), a LIA organiza a síntese em **“object files” semânticos** (`.liao`) que podem ser gerados em paralelo e então **linkados** por um *linker* determinístico, com **policies/constraints formais** (arquitetura, segurança, boas práticas) e **trilha de reprodutibilidade** (prompt/model/config).
+A **LIA (Linguagem Intermediária Assistida)** é **uma linguagem/IR e um sistema**. Ela é desenhada para ser **produzida e consumida principalmente por modelos de linguagem (LLMs)** e agentes. Em vez de gerar código final direto (Java/Python/etc.), a LIA organiza a síntese em **“object files” semânticos** (`.liao`) que podem ser gerados em paralelo e então **linkados** por um *linker* determinístico, com **policies/constraints formais** (arquitetura, segurança, boas práticas) e **trilha de reprodutibilidade** (prompt/model/config).
 
 ---
 
@@ -62,8 +62,23 @@ lia/
   pkg/
     api/
   docs/
+    guide/
+      getting-started.md
+      pipeline.md
+      cli.md
+      repro.md
+      ir.md
+      packs-and-policies.md
+      linker.md
     spec/
       lia-v0.1.md
+      packs/
+        arch-baseline.lia
+        security-baseline.lia
+      toolchain-checks.md
+    INDEX.md
+    overview.md
+    roadmap.md
   examples/
     order-service/
       project.lia
@@ -115,7 +130,27 @@ lia explain /tmp/order.lial --decision-log /tmp/order.lial.decision-log.json
 
 ---
 
-## Docs
+## Documentação em camadas
+
+Comece por aqui:
+
+- **Índice geral:** `docs/INDEX.md`
+- **Visão geral (não técnica):** `docs/overview.md`
+- **MVP em 10 minutos:** `docs/guide/getting-started.md`
+
+Aprofundando por área:
+
+- **Pipeline:** `docs/guide/pipeline.md`
+- **CLI:** `docs/guide/cli.md`
+- **Reprodutibilidade:** `docs/guide/repro.md`
+- **IR/AST:** `docs/guide/ir.md`
+- **Packs/Policies:** `docs/guide/packs-and-policies.md`
+- **Linker:** `docs/guide/linker.md`
+- **Checklist rápido:** `docs/guide/what-we-have.md`
+- **Arquitetura do sistema:** `docs/architecture/system.md`
+- **O que existe vs não existe:** `docs/roadmap.md`
+
+Specs e packs:
 
 - Spec inicial: `docs/spec/lia-v0.1.md`
 - Rascunho histórico: `lia.md`
