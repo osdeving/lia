@@ -32,6 +32,15 @@ Not the objective (v0.1):
 
 ---
 
+## 0.1) Implementation status (v0.1)
+
+This spec describes the **intended** language. The current toolchain implements only a subset:
+
+* Parser supports: `project`, `module`, `use pack`, `repro`, `tape`.
+* Linker and lowerers are **stubs** (no real graph resolution or codegen yet).
+
+See the **implementation roadmap**: `docs/en/roadmap.md` (and `docs/pt-br/roadmap.md`).
+
 ## 1) Artifacts and Pipeline
 
 ### 1.1 File Types

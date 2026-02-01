@@ -1,35 +1,110 @@
-# Roadmap / Status
+# Roadmap / Status — Completude da Linguagem
 
-Este documento descreve o que existe hoje versus o que está planejado.
+Este documento é o plano de implementação para tornar a LIA uma linguagem/IR mais completa. Ele é **docs‑first** e deve ser atualizado antes do código.
 
-## Existe (MVP)
+## Princípios
 
-- CLI com parse/check/link/explain/lower
-- Estruturas IR + JSON canônico + hashing
-- Carregador de packs (pseudo-LIA) e motor de políticas mínimo
-- Scaffolding de reprodutibilidade (`@gen`, prompt tape)
-- Projeto de exemplo e prompt tape
+- Spec first (atualizar `docs/pt-br/spec` + `docs/en/spec` antes do código).
+- Determinismo e reprodutibilidade são inegociáveis.
+- Marcos pequenos, verificáveis e com critérios claros.
 
-## Parcialmente implementado
+## ADRs relacionados
 
-- Enforcement de políticas (apenas subconjunto)
-- Linker (stub, sem resolução de grafo)
-- Parser (subconjunto muito pequeno)
-- Lowerers (stubs)
+- `../adr/0001_TOOLCHAIN_STACK.md` — Stack do toolchain (commodity vs core)
 
-## Ainda não implementado
+## Estado atual (v0.1 na develop)
 
-- Gramática completa e parser
-- Tabela de símbolos completa e `requires/provides`
-- Seleção com scoring + tie-break
-- Passes de synth/transform
-- Capabilities e taint/dataflow
-- Lowering real para Java/Python
-- Registry de packs / resolução de semver
+- CLI: parse/check/link/explain/lower (stubs em partes).
+- Parser: **subconjunto muito pequeno** (`project`, `module`, `use pack`, `repro`, `tape`).
+- Estruturas IR + JSON canônico + hashing.
+- Carregador de packs (pseudo‑LIA) + motor mínimo de políticas.
+- Linker: stub (sem resolução de grafo/seleção).
+- Lowerers: stubs.
 
-## Próximos marcos imediatos
+## O que significa “mais completo”
 
-1) Parse de `provides/requires` + efeitos
-2) Construir grafo de dependências e enforçar deps de roles
-3) Implementar seleção determinística + detalhe do decision log
-4) Adicionar primeiro target de lowering real
+Uma LIA mais completa deve suportar:
+
+- **Gramática core completa** (types, enums, ports, usecases, adapters, wiring, constraints, preferences, effects).
+- **Camada semântica** (symbols, requires/provides, validação de effects).
+- **Linker determinístico** (grafo, seleção, decision log).
+- **Políticas aplicadas** (roles/effects/deps; depois capabilities/taint).
+- **Ao menos um lowering real** com convenções de runtime.
+
+## Marcos (fases)
+
+### M1 — Gramática core + AST
+
+**Escopo**
+- Adicionar gramática para: types, enums, ports, usecases, adapters, wiring, constraints, preferences, effects.
+- Definir gramática mínima de expressões/statement para bodies de usecase (se imperativo).
+- Expandir IR para representar esses constructs.
+
+**Done when**
+- Parser aceita os exemplos canônicos em `examples/`.
+- EBNF da spec atualizado em EN/PT.
+- Testes unitários cobrindo edge cases do parser.
+
+### M2 — IR semântico (symbols + effects)
+
+**Escopo**
+- `requires/provides` derivado dos módulos.
+- Effects validados contra roles.
+- Regras de canonicalização ajustadas.
+
+**Done when**
+- `lia check` reporta diagnósticos precisos para símbolos faltantes/invalidos.
+- Hashes determinísticos para entradas idênticas.
+
+### M3 — Linker determinístico
+
+**Escopo**
+- Construção do grafo de dependências.
+- Detecção de colisões e seleção de candidatos.
+- Tie‑break fixo e decision log detalhado.
+
+**Done when**
+- Linker resolve múltiplos `.liao` em `.lial` estável com decision log reproduzível.
+- Testes para seleção + regras de tie‑break.
+
+### M4 — Enforcement de políticas (profiles)
+
+**Escopo**
+- Enforçar constraints de role/effect/deps vindas dos packs.
+- Budgets (max modules, max deps) aplicados.
+
+**Done when**
+- Violações viram erro duro no `lia check/link`.
+- Constraints de packs aplicadas de forma consistente.
+
+### M5 — Primeiro lowering real
+
+**Escopo**
+- Um target (Python ou Java) com saída executável e convenções mínimas de runtime.
+- Mapeamento para usecases, ports/adapters e IO básico.
+
+**Done when**
+- `lia lower` gera output executável para exemplo não‑trivial.
+- Golden tests validam codegen.
+
+### M6 — Tooling + reprodutibilidade
+
+**Escopo**
+- Validação estrita de `@gen` + prompt tape em `repro=strict`.
+- `lia replay` definido e aplicado.
+
+**Done when**
+- Rebuilds reproduzíveis sob `repro=strict`.
+- Decision log + prompt tape totalmente rastreáveis.
+
+## Fora de escopo (por enquanto)
+
+- Prova formal completa de regras de negócio.
+- Marketplace/registry de packs.
+- Runtime de plugins externos (WASM) para passes.
+
+## Próximos passos imediatos
+
+1) Expandir gramática e parser (M1).
+2) Introduzir symbol table + requires/provides (M2).
+3) Linker determinístico (M3).

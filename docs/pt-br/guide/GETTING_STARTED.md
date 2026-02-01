@@ -30,7 +30,7 @@ go run ./cmd/lia lower /tmp/order.lial --target java -o /tmp/order.java
 
 ## Known limitations in MVP
 
-- Parser é minimalista (subset de project/module/usecase; tipos/ports/adapters ainda não).
+- Parser é minimalista (apenas project/module/use pack/repro/tape).
 - Linker is a stub (no real symbol resolution yet).
 - SecurityBaseline rules are not enforced (warnings only).
 
