@@ -8,6 +8,10 @@ This doc is the implementation plan for making LIA a more complete language/IR. 
 - Determinism and reproducibility are non‑negotiable.
 - Small, verifiable milestones with explicit acceptance criteria.
 
+## Related ADRs
+
+- `docs/adr/0001_TOOLCHAIN_STACK.md` — Toolchain stack (commodity vs core)
+
 ## Current state (v0.1 on develop)
 
 - CLI: parse/check/link/explain/lower (stubs in parts).

@@ -8,6 +8,10 @@ Este documento é o plano de implementação para tornar a LIA uma linguagem/IR 
 - Determinismo e reprodutibilidade são inegociáveis.
 - Marcos pequenos, verificáveis e com critérios claros.
 
+## ADRs relacionados
+
+- `../adr/0001_TOOLCHAIN_STACK.md` — Stack do toolchain (commodity vs core)
+
 ## Estado atual (v0.1 na develop)
 
 - CLI: parse/check/link/explain/lower (stubs em partes).
