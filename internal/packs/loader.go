@@ -88,8 +88,9 @@ func packFileCandidates(name, version string) []string {
 	var candidates []string
 	kebab := toKebab(name)
 	lower := strings.ToLower(name)
+	upperUnderscore := strings.ToUpper(strings.ReplaceAll(kebab, "-", "_"))
 
-	base := []string{name, lower, kebab}
+	base := []string{name, lower, kebab, upperUnderscore}
 	for _, b := range base {
 		if b == "" {
 			continue
@@ -98,6 +99,7 @@ func packFileCandidates(name, version string) []string {
 		if version != "" {
 			candidates = append(candidates, b+"-"+version+".lia")
 			candidates = append(candidates, b+"@"+version+".lia")
+			candidates = append(candidates, b+"_"+version+".lia")
 		}
 	}
 
