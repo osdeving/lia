@@ -4,7 +4,7 @@ This document defines the complete lifecycle of changes in the project, from con
 
 ## 1. Roadmap and Planning
 
-The Roadmap (`roadmap.md`) is the source of truth for strategic direction.
+The Roadmap (`ROADMAP.md`) is the source of truth for strategic direction.
 
 - **Curation**: Maintained by *Core Maintainers*.
 - **Update**: Reviewed quarterly or after *Milestone Releases*.

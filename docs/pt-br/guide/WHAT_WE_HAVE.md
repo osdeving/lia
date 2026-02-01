@@ -22,4 +22,4 @@ This document is a plain checklist for contributors.
 
 ## How to prove it works
 
-Run `docs/pt-br/guide/getting-started.md`.
+Run `docs/pt-br/guide/GETTING_STARTED.md`.

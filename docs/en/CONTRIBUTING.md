@@ -18,6 +18,8 @@ Welcome to the **LIA** development. As this is a critical AI infrastructure proj
 
 1. **Linting**: Code must pass `golangci-lint` (check with `golangci-lint run`).
 
+1. **Docs naming**: Documentation files use `UPPERCASE_WITH_UNDERSCORES.md` (no hyphens, no lowercase in filenames).
+
 ## 2. Pull Request (PR) Rules
 
 - **Reproducibility**: If you change the Parser or Linker, update `examples/order-service`.

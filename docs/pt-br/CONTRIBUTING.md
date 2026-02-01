@@ -11,6 +11,7 @@ Bem-vindo ao desenvolvimento do **LIA**. Como este é um projeto crítico de inf
 2. **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/v1.0.0/).
     - Ex: `feat(linker): add support for selective symbol merging`
 3. **Testes**: Todo PR deve passar em `go test ./...`.
+4. **Nomes de docs**: Arquivos de documentação usam `CAIXA_ALTA_COM_UNDERSCORE.md` (sem hífen, sem minúsculas no nome).
 4. **Linting**: O código deve passar no `golangci-lint` (verifique com `golangci-lint run`).
 
 ## 2. Regras de Pull Request (PR)
