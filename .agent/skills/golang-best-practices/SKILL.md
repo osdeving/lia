@@ -378,4 +378,4 @@ Before adding a new dependency, ask:
 - [Uber Go Style Guide](https://github.com/uber-go/guide/blob/master/style.md)
 - [Effective Go](https://go.dev/doc/effective_go)
 - [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- [LIA Specification](../../docs/en/spec/lia-v0.1.md)
+- [LIA Specification](../../docs/en/spec/LIA_V0_1.md)

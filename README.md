@@ -68,14 +68,14 @@ lia/
       guide/
       spec/
       INDEX.md
-      overview.md
-      roadmap.md
+      OVERVIEW.md
+      ROADMAP.md
     pt-br/
       guide/
       spec/
       INDEX.md
-      overview.md
-      roadmap.md
+      OVERVIEW.md
+      ROADMAP.md
   examples/
     order-service/
       project.lia
@@ -133,31 +133,31 @@ Comece por aqui (escolha o idioma):
 
 - **Índice (pt-br):** `docs/pt-br/INDEX.md`
 - **Índice (en):** `docs/en/INDEX.md`
-- **Visão geral (pt-br):** `docs/pt-br/overview.md`
-- **Visão geral (en):** `docs/en/overview.md`
-- **MVP em 10 minutos (pt-br):** `docs/pt-br/guide/getting-started.md`
+- **Visão geral (pt-br):** `docs/pt-br/OVERVIEW.md`
+- **Visão geral (en):** `docs/en/OVERVIEW.md`
+- **MVP em 10 minutos (pt-br):** `docs/pt-br/guide/GETTING_STARTED.md`
 
 Aprofundando por área:
 
-- **Pipeline:** `docs/pt-br/guide/pipeline.md`
-- **CLI:** `docs/pt-br/guide/cli.md`
-- **Reprodutibilidade:** `docs/pt-br/guide/repro.md`
-- **IR/AST:** `docs/pt-br/guide/ir.md`
-- **Packs/Policies:** `docs/pt-br/guide/packs-and-policies.md`
-- **Linker:** `docs/pt-br/guide/linker.md`
-- **Checklist rápido:** `docs/pt-br/guide/what-we-have.md`
-- **Arquitetura do sistema:** `docs/pt-br/architecture/system.md`
-- **O que existe vs não existe:** `docs/pt-br/roadmap.md`
+- **Pipeline:** `docs/pt-br/guide/PIPELINE.md`
+- **CLI:** `docs/pt-br/guide/CLI.md`
+- **Reprodutibilidade:** `docs/pt-br/guide/REPRO.md`
+- **IR/AST:** `docs/pt-br/guide/IR.md`
+- **Packs/Policies:** `docs/pt-br/guide/PACKS_AND_POLICIES.md`
+- **Linker:** `docs/pt-br/guide/LINKER.md`
+- **Checklist rápido:** `docs/pt-br/guide/WHAT_WE_HAVE.md`
+- **Arquitetura do sistema:** `docs/pt-br/architecture/SYSTEM.md`
+- **O que existe vs não existe:** `docs/pt-br/ROADMAP.md`
 
 Specs e packs:
 
-- Spec inicial (pt-br): `docs/pt-br/spec/lia-v0.1.md`
-- Spec inicial (en): `docs/en/spec/lia-v0.1.md`
+- Spec inicial (pt-br): `docs/pt-br/spec/LIA_V0_1.md`
+- Spec inicial (en): `docs/en/spec/LIA_V0_1.md`
 - Rascunho histórico: `lia.md`
-- Packs MVP (pt-br): `docs/pt-br/spec/packs/arch-baseline.lia`, `docs/pt-br/spec/packs/security-baseline.lia`
-- Packs MVP (en): `docs/en/spec/packs/arch-baseline.lia`, `docs/en/spec/packs/security-baseline.lia`
-- Checklist do toolchain (pt-br): `docs/pt-br/spec/toolchain-checks.md`
-- Checklist do toolchain (en): `docs/en/spec/toolchain-checks.md`
+- Packs MVP (pt-br): `docs/pt-br/spec/packs/ARCH_BASELINE.lia`, `docs/pt-br/spec/packs/SECURITY_BASELINE.lia`
+- Packs MVP (en): `docs/en/spec/packs/ARCH_BASELINE.lia`, `docs/en/spec/packs/SECURITY_BASELINE.lia`
+- Checklist do toolchain (pt-br): `docs/pt-br/spec/TOOLCHAIN_CHECKS.md`
+- Checklist do toolchain (en): `docs/en/spec/TOOLCHAIN_CHECKS.md`
 
 ---
 

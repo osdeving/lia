@@ -71,7 +71,7 @@
 - `spec/<scope>/<description>`: Changes to the LIA specification
   - Ex: `spec/grammar/effect-system`, `spec/policies/budget-constraints`
 - `docs/<scope>/<description>`: Documentation improvements
-  - Ex: `docs/pt-br/guide/getting-started`, `docs/en/guide/cli`
+  - Ex: `docs/pt-br/guide/GETTING_STARTED`, `docs/en/guide/CLI`
 - `test/<scope>/<description>`: Adding/improving tests
   - Ex: `test/parser/edge-cases`, `test/integration/e2e-workflow`
 - `refactor/<scope>/<description>`: Refactors without behavioral changes
@@ -274,7 +274,7 @@ Before submitting any change, **verify**:
 
 ## 9. ADDITIONAL RESOURCES
 
-- **LIA Specification**: `docs/pt-br/spec/lia-v0.1.md` (ou `docs/en/spec/lia-v0.1.md`)
+- **LIA Specification**: `docs/pt-br/spec/LIA_V0_1.md` (ou `docs/en/spec/LIA_V0_1.md`)
 - **Manifesto**: `docs/pt-br/LIA_MANIFESTO.md` (ou `docs/en/LIA_MANIFESTO.md`)
 - **Testing Guide**: `docs/pt-br/TESTING_GUIDE.md` (ou `docs/en/TESTING_GUIDE.md`)
 - **Testing Strategy**: `docs/pt-br/TESTING_STRATEGY.md` (ou `docs/en/TESTING_STRATEGY.md`)

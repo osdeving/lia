@@ -33,4 +33,4 @@ LIA is a compiler-like pipeline. Each step produces a deterministic artifact.
 - prompt tape stores prompt bodies + hashes
 - decision log stores linker choices + hash
 
-Ver `docs/pt-br/guide/repro.md` para detalhes.
+See `docs/en/guide/REPRO.md` for details.

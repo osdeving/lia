@@ -110,49 +110,49 @@ Key goals: reproducibility (canonical JSON + hashes + @gen), linkability (module
 ### 2.7 Docs (English)
 - `docs/REPO_ATLAS_DRAFT.md` - temporary repository map (this file).
 - `docs/en/INDEX.md` - doc index (entry points).
-- `docs/en/overview.md` - non-technical overview.
+- `docs/en/OVERVIEW.md` - non-technical overview.
 - `docs/en/LIA_MANIFESTO.md` - model-first manifesto.
-- `docs/en/roadmap.md` - roadmap status.
+- `docs/en/ROADMAP.md` - roadmap status.
 - `docs/en/PROCESS.md` - change process (roadmap -> ADR -> spec -> code).
 - `docs/en/CONTRIBUTING.md` - contribution workflow.
 - `docs/en/TESTING_GUIDE.md` - how to run tests.
 - `docs/en/TESTING_STRATEGY.md` - testing strategy, LLM-aware.
-- `docs/en/architecture/system.md` - system architecture overview.
-- `docs/en/guide/getting-started.md` - quick start.
-- `docs/en/guide/pipeline.md` - pipeline artifacts.
-- `docs/en/guide/cli.md` - CLI reference.
-- `docs/en/guide/repro.md` - repro model.
-- `docs/en/guide/ir.md` - IR/AST shape.
-- `docs/en/guide/linker.md` - linker responsibilities.
-- `docs/en/guide/packs-and-policies.md` - packs, policies, constraints.
-- `docs/en/guide/what-we-have.md` - what exists vs not.
-- `docs/en/spec/lia-v0.1.md` - spec and grammar.
-- `docs/en/spec/toolchain-checks.md` - validation checklist.
-- `docs/en/spec/packs/arch-baseline.lia` - ArchBaseline pack (pseudo-LIA).
-- `docs/en/spec/packs/security-baseline.lia` - SecurityBaseline pack (pseudo-LIA).
+- `docs/en/architecture/SYSTEM.md` - system architecture overview.
+- `docs/en/guide/GETTING_STARTED.md` - quick start.
+- `docs/en/guide/PIPELINE.md` - pipeline artifacts.
+- `docs/en/guide/CLI.md` - CLI reference.
+- `docs/en/guide/REPRO.md` - repro model.
+- `docs/en/guide/IR.md` - IR/AST shape.
+- `docs/en/guide/LINKER.md` - linker responsibilities.
+- `docs/en/guide/PACKS_AND_POLICIES.md` - packs, policies, constraints.
+- `docs/en/guide/WHAT_WE_HAVE.md` - what exists vs not.
+- `docs/en/spec/LIA_V0_1.md` - spec and grammar.
+- `docs/en/spec/TOOLCHAIN_CHECKS.md` - validation checklist.
+- `docs/en/spec/packs/ARCH_BASELINE.lia` - ArchBaseline pack (pseudo-LIA).
+- `docs/en/spec/packs/SECURITY_BASELINE.lia` - SecurityBaseline pack (pseudo-LIA).
 
 ### 2.8 Docs (PT-BR)
 - `docs/pt-br/INDEX.md` - indice da documentacao.
-- `docs/pt-br/overview.md` - visao geral.
+- `docs/pt-br/OVERVIEW.md` - visao geral.
 - `docs/pt-br/LIA_MANIFESTO.md` - manifesto.
-- `docs/pt-br/roadmap.md` - roadmap.
+- `docs/pt-br/ROADMAP.md` - roadmap.
 - `docs/pt-br/PROCESS.md` - processo de mudancas.
 - `docs/pt-br/CONTRIBUTING.md` - contribuicao.
 - `docs/pt-br/TESTING_GUIDE.md` - guia de testes.
 - `docs/pt-br/TESTING_STRATEGY.md` - estrategia de testes.
-- `docs/pt-br/architecture/system.md` - arquitetura do sistema.
-- `docs/pt-br/guide/getting-started.md` - guia rapido.
-- `docs/pt-br/guide/pipeline.md` - pipeline e artefatos.
-- `docs/pt-br/guide/cli.md` - CLI.
-- `docs/pt-br/guide/repro.md` - reproducao.
-- `docs/pt-br/guide/ir.md` - IR/AST.
-- `docs/pt-br/guide/linker.md` - linker.
-- `docs/pt-br/guide/packs-and-policies.md` - packs e politicas.
-- `docs/pt-br/guide/what-we-have.md` - o que existe.
-- `docs/pt-br/spec/lia-v0.1.md` - spec e gramatica.
-- `docs/pt-br/spec/toolchain-checks.md` - checklist.
-- `docs/pt-br/spec/packs/arch-baseline.lia` - pack arch.
-- `docs/pt-br/spec/packs/security-baseline.lia` - pack security.
+- `docs/pt-br/architecture/SYSTEM.md` - arquitetura do sistema.
+- `docs/pt-br/guide/GETTING_STARTED.md` - guia rapido.
+- `docs/pt-br/guide/PIPELINE.md` - pipeline e artefatos.
+- `docs/pt-br/guide/CLI.md` - CLI.
+- `docs/pt-br/guide/REPRO.md` - reproducao.
+- `docs/pt-br/guide/IR.md` - IR/AST.
+- `docs/pt-br/guide/LINKER.md` - linker.
+- `docs/pt-br/guide/PACKS_AND_POLICIES.md` - packs e politicas.
+- `docs/pt-br/guide/WHAT_WE_HAVE.md` - o que existe.
+- `docs/pt-br/spec/LIA_V0_1.md` - spec e gramatica.
+- `docs/pt-br/spec/TOOLCHAIN_CHECKS.md` - checklist.
+- `docs/pt-br/spec/packs/ARCH_BASELINE.lia` - pack arch.
+- `docs/pt-br/spec/packs/SECURITY_BASELINE.lia` - pack security.
 
 ### 2.9 ADRs
 - `docs/adr/README.md` - ADR index and conventions.

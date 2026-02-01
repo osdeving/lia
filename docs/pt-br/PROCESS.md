@@ -4,7 +4,7 @@ Este documento define o ciclo de vida completo de mudanças no projeto, desde a 
 
 ## 1. Roadmap e Planejamento
 
-O Roadmap (`roadmap.md`) é a fonte da verdade para a direção estratégica.
+O Roadmap (`ROADMAP.md`) é a fonte da verdade para a direção estratégica.
 
 - **Curadoria**: Mantido pelos *Core Maintainers*.
 - **Atualização**: Revisado trimestralmente ou após *Milestone Releases*.
