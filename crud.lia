@@ -1,0 +1,271 @@
+package com.ws.lia.customers;
+
+import pack ws_security_baseline@1.0.0;
+import pack ws_arch_hex@1.0.0;
+
+/* =========================================================
+   DOMAIN (FRIENDLY + PURE) — customers.core
+   ========================================================= */
+module customers.core {
+  role domain;
+
+  type CustomerId struct { value: String; }
+  type Email struct { value: String; }
+
+  type CustomerStatus enum { ACTIVE, DISABLED, DELETED };
+
+  type Customer struct {
+    id: CustomerId;
+    name: String;
+    email: Email;
+    status: CustomerStatus;
+    created_at: String;
+    updated_at: String;
+  }
+
+  // Patch para UPDATE (campos opcionais por convenção do target)
+  type CustomerPatch struct {
+    name: String;
+    email: Email;
+    status: CustomerStatus;
+  }
+}
+
+/* =========================================================
+   PORTS — customers.ports
+   ========================================================= */
+module customers.ports {
+  role port;
+
+  port CustomerRepo {
+    fn create(c: customers.core.Customer): Bool;
+    fn get(id: customers.core.CustomerId): customers.core.Customer;
+    fn update(id: customers.core.CustomerId, patch: customers.core.CustomerPatch): customers.core.Customer;
+    fn delete(id: customers.core.CustomerId): Bool;
+    fn list(): String; // simplificado v0.1 (no target vira List<Customer>)
+    fn exists_by_email(email: customers.core.Email): Bool;
+  }
+
+  port IdGen {
+    fn new_id(): customers.core.CustomerId;
+  }
+
+  port Clock {
+    fn now_iso(): String;
+  }
+}
+
+/* =========================================================
+   REQUIREMENTS (FR) — BDD-light
+   ========================================================= */
+story REQ-1 {
+  as "system user";
+  i_want "manage customers";
+  so_that "I can create, view, edit, and remove customer records";
+}
+
+rule RULE-1 {
+  text "Email must be unique per customer";
+}
+
+rule RULE-2 {
+  text "Delete behavior must be defined: hard-delete or soft-delete";
+}
+
+scenario SCN-1 {
+  given "a new customer payload with a unique email";
+  when  "CreateCustomer is executed";
+  then  "the customer is persisted and returned with an id";
+}
+
+scenario SCN-2 {
+  given "an existing customer id";
+  when  "GetCustomer is executed";
+  then  "the customer record is returned";
+}
+
+scenario SCN-3 {
+  given "an existing customer id and a patch";
+  when  "UpdateCustomer is executed";
+  then  "the customer is updated and returned";
+}
+
+scenario SCN-4 {
+  given "an existing customer id";
+  when  "DeleteCustomer is executed";
+  then  "the customer is removed or marked DELETED depending on the delete mode";
+}
+
+scenario SCN-5 {
+  given "multiple customers exist";
+  when  "ListCustomers is executed";
+  then  "a list of customers is returned";
+}
+
+/* =========================================================
+   ELICITATION (business decision) — asked by linker/build
+   ========================================================= */
+question RULE-2 {
+  text "Delete mode for Customer: hard delete or soft delete?";
+  options { "hard"; "soft"; }
+}
+
+/* =========================================================
+   USECASES — customers.usecases (CRUD)
+   ========================================================= */
+module customers.usecases {
+  role usecase;
+
+  // ---------- CREATE ----------
+  usecase CreateCustomer {
+    requires { customers.ports.CustomerRepo; customers.ports.IdGen; customers.ports.Clock; }
+    provides { customers.usecases.CreateCustomer; }
+    effect tx;
+
+    step "validate input (name/email required)";
+    step "enforce RULE-1: email must be unique";
+    step "generate id";
+    step "set created_at/updated_at";
+    step "persist";
+  }
+
+  // ---------- READ ----------
+  usecase GetCustomer {
+    requires { customers.ports.CustomerRepo; }
+    provides { customers.usecases.GetCustomer; }
+    effect io;
+
+    step "load by id";
+    step "if not found -> error/not_found";
+  }
+
+  // ---------- UPDATE ----------
+  usecase UpdateCustomer {
+    requires { customers.ports.CustomerRepo; customers.ports.Clock; }
+    provides { customers.usecases.UpdateCustomer; }
+    effect tx;
+
+    step "load existing";
+    step "validate patch (allowed fields)";
+    step "if patch includes email -> enforce RULE-1 uniqueness";
+    step "apply patch";
+    step "set updated_at";
+    step "persist";
+  }
+
+  // ---------- DELETE ----------
+  usecase DeleteCustomer {
+    requires { customers.ports.CustomerRepo; customers.ports.Clock; }
+    provides { customers.usecases.DeleteCustomer; }
+    effect tx;
+
+    // business-sensitive: do not assume. linker must resolve RULE-2 via decision tape.
+    hole delete_mode: String;
+
+    step "load existing";
+    step "if delete_mode == soft -> set status DELETED and updated_at, persist";
+    step "if delete_mode == hard -> delete from repo";
+  }
+
+  // ---------- LIST ----------
+  usecase ListCustomers {
+    requires { customers.ports.CustomerRepo; }
+    provides { customers.usecases.ListCustomers; }
+    effect io;
+
+    step "list all";
+    step "apply visibility rules (if any)";
+  }
+}
+
+/* =========================================================
+   ADAPTERS — implementations for CustomerRepo
+   ========================================================= */
+
+module customers.adapters.db {
+  role adapter;
+
+  adapter CustomerRepoPg {
+    requires { customers.ports.CustomerRepo; }
+    provides { customers.ports.CustomerRepo; }
+
+    capability { db.query; secrets.read; }
+    effect io;
+
+    bind CustomerRepo -> customers.ports.CustomerRepo;
+    hole schema_mapping: String;
+    hole query_strategy: String; // ensures no raw SQL concat (policy will gate)
+  }
+}
+
+module customers.adapters.mem {
+  role adapter;
+
+  adapter CustomerRepoInMemory {
+    requires { customers.ports.CustomerRepo; }
+    provides { customers.ports.CustomerRepo; }
+
+    capability { mem.store; }
+    effect io;
+
+    bind CustomerRepo -> customers.ports.CustomerRepo;
+  }
+}
+
+/* =========================================================
+   WIRING — composition
+   ========================================================= */
+module customers.app {
+  role wiring;
+
+  wiring Main {
+    // explicit connect OR let linker choose via `prefer`
+    connect customers.usecases.CreateCustomer -> customers.adapters.db.CustomerRepoPg;
+    connect customers.usecases.GetCustomer    -> customers.adapters.db.CustomerRepoPg;
+    connect customers.usecases.UpdateCustomer -> customers.adapters.db.CustomerRepoPg;
+    connect customers.usecases.DeleteCustomer -> customers.adapters.db.CustomerRepoPg;
+    connect customers.usecases.ListCustomers  -> customers.adapters.db.CustomerRepoPg;
+
+    compose customers.usecases.CreateCustomer;
+    compose customers.usecases.GetCustomer;
+    compose customers.usecases.UpdateCustomer;
+    compose customers.usecases.DeleteCustomer;
+    compose customers.usecases.ListCustomers;
+  }
+}
+
+/* =========================================================
+   NFR — policies, constraints, prefer
+   ========================================================= */
+
+policy security_baseline {
+  // Exemplos (backend pode ser OPA/Rego, mas aqui é first-class)
+  deny db.raw_sql;
+  deny log.contains_pii;
+  require input.validation;
+  require authn when "usecase.write"; // Create/Update/Delete (convenção/label do pipeline)
+}
+
+constraint hexagonal_layers {
+  forbid customers.core depends_on customers.adapters.db;
+  forbid customers.core depends_on customers.adapters.mem;
+  require customers.usecases depends_on customers.ports;
+}
+
+prefer provider_selection {
+  score customers.adapters.db.CustomerRepoPg: 100;
+  score customers.adapters.mem.CustomerRepoInMemory: 10;
+}
+
+/* =========================================================
+   TEST ORACLES (linker can enforce coverage in repro=strict)
+   ========================================================= */
+test customers_crud_oracles {
+  case SCN-1;
+  case SCN-2;
+  case SCN-3;
+  case SCN-4;
+  case SCN-5;
+  property RULE-1;
+  property RULE-2;
+}
