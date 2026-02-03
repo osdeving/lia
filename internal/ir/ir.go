@@ -130,6 +130,7 @@ type UsecaseDecl struct {
 	Inputs  []Field  `json:"inputs,omitempty"`
 	Outputs []Field  `json:"outputs,omitempty"`
 	Effects []string `json:"effects,omitempty"`
+	Body    []Stmt   `json:"body,omitempty"`
 }
 
 // AdapterDecl defines an adapter.
@@ -139,6 +140,7 @@ type AdapterDecl struct {
 	Inputs     []Field  `json:"inputs,omitempty"`
 	Outputs    []Field  `json:"outputs,omitempty"`
 	Effects    []string `json:"effects,omitempty"`
+	Body       []Stmt   `json:"body,omitempty"`
 }
 
 // WiringDecl defines a wiring block.
@@ -184,6 +186,110 @@ type FuncDecl struct {
 type Field struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
+}
+
+// Stmt represents a minimal imperative statement.
+type Stmt struct {
+	Kind     string      `json:"kind"`
+	Let      *LetStmt    `json:"let,omitempty"`
+	Assign   *AssignStmt `json:"assign,omitempty"`
+	If       *IfStmt     `json:"if,omitempty"`
+	While    *WhileStmt  `json:"while,omitempty"`
+	For      *ForStmt    `json:"for,omitempty"`
+	Return   *ReturnStmt `json:"return,omitempty"`
+	ExprStmt *Expr       `json:"expr,omitempty"`
+}
+
+// LetStmt declares a new local value.
+type LetStmt struct {
+	Name  string `json:"name"`
+	Value Expr   `json:"value"`
+}
+
+// AssignStmt assigns to an existing variable.
+type AssignStmt struct {
+	Name  string `json:"name"`
+	Value Expr   `json:"value"`
+}
+
+// IfStmt represents a conditional.
+type IfStmt struct {
+	Cond Expr   `json:"cond"`
+	Then []Stmt `json:"then,omitempty"`
+	Else []Stmt `json:"else,omitempty"`
+}
+
+// WhileStmt represents a loop.
+type WhileStmt struct {
+	Cond Expr   `json:"cond"`
+	Body []Stmt `json:"body,omitempty"`
+}
+
+// ForStmt represents a collection loop.
+type ForStmt struct {
+	Var  string `json:"var"`
+	Iter Expr   `json:"iter"`
+	Body []Stmt `json:"body,omitempty"`
+}
+
+// ReturnStmt represents a return statement.
+type ReturnStmt struct {
+	Value *Expr `json:"value,omitempty"`
+}
+
+// Expr represents a minimal expression tree.
+type Expr struct {
+	Kind    string      `json:"kind"`
+	Ident   string      `json:"ident,omitempty"`
+	Literal *Literal    `json:"literal,omitempty"`
+	Unary   *UnaryExpr  `json:"unary,omitempty"`
+	Binary  *BinaryExpr `json:"binary,omitempty"`
+	Call    *CallExpr   `json:"call,omitempty"`
+	Member  *MemberExpr `json:"member,omitempty"`
+	Index   *IndexExpr  `json:"index,omitempty"`
+	List    *ListExpr   `json:"list,omitempty"`
+}
+
+// Literal represents a literal value.
+type Literal struct {
+	Kind  string `json:"kind"`
+	Value string `json:"value"`
+}
+
+// UnaryExpr represents a unary operation.
+type UnaryExpr struct {
+	Op   string `json:"op"`
+	Expr Expr   `json:"expr"`
+}
+
+// BinaryExpr represents a binary operation.
+type BinaryExpr struct {
+	Op    string `json:"op"`
+	Left  Expr   `json:"left"`
+	Right Expr   `json:"right"`
+}
+
+// CallExpr represents a function call.
+type CallExpr struct {
+	Callee Expr   `json:"callee"`
+	Args   []Expr `json:"args,omitempty"`
+}
+
+// MemberExpr represents field access.
+type MemberExpr struct {
+	Object Expr   `json:"object"`
+	Field  string `json:"field"`
+}
+
+// IndexExpr represents index access.
+type IndexExpr struct {
+	Object Expr `json:"object"`
+	Index  Expr `json:"index"`
+}
+
+// ListExpr represents a list literal.
+type ListExpr struct {
+	Elements []Expr `json:"elements,omitempty"`
 }
 
 // PolicyDecl defines a policy block.

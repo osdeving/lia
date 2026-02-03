@@ -24,6 +24,8 @@ Minimum checklist:
 
 1) **Local Rules by Role/Effect**
 
+- Validate effect names (`pure`, `io`, `tx`, `emit`) and forbid `pure` mixed with other effects.
+
 - Apply local constraints (e.g., `domain` cannot have `io`/`tx`).
 
 - Validate declared effects against roles (e.g., `port` without `io`).
@@ -54,7 +56,7 @@ Minimum checklist:
 
 1) **Dependency graph**
 
-- Construct `requires -> provides`.
+- Construct `requires -> provides` (deriving symbols when missing).
 
 - Detect missing symbols and collisions.
 
@@ -68,7 +70,7 @@ Minimum checklist:
 
 - Apply preferences (soft) and score.
 
-- Fixed tie-break: semver desc, stability desc, deps asc, lexical.
+- Fixed tie-break: score desc, deps asc, lexical.
 
 1) **Explicit merges**
 

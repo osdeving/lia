@@ -1,185 +1,182 @@
-# LIA v0.1 — Draft Specification (model‑first) + Reprodutibilidade
+# LIA v0.1 — Draft Specification (model-first) + Reprodutibilidade
 
-> **LIA** = *Linguagem Intermediária Assistida* (nome de trabalho).
-> Codinome opcional da linguagem: **Trama** (porque “tece” módulos), mas o nome pode mudar sem alterar o core.
+> **LIA** = *Linguagem Intermediaria Assistida* (nome de trabalho).
+> Codinome opcional da linguagem: **Trama** (porque "tece" modulos), mas o nome pode mudar sem alterar o core.
 
 ---
 
 ## 0) Objetivo
 
-LIA é uma linguagem/IR intermediária para geração de software a partir de linguagem natural com foco em:
+LIA e uma linguagem/IR intermediaria para geracao de software a partir de linguagem natural com foco em:
 
-* **Modularidade linkável**: “object files” LIA (`.liao`) geráveis em paralelo por múltiplos agentes/modelos.
-* **Determinismo por construção**: semântica expressa em constructs formais + verificação no linker.
-* **Qualidade e boas práticas por default**: políticas, constraints e capabilities que impedem estados ruins.
-* **Extensibilidade**: plugins como *passes* (transform/verify/synthesize) e packs/stdlib reutilizáveis.
-* **Model‑first**: a linguagem é desenhada primariamente para consumo/produção por modelos (não por humanos).
-* **Reprodutibilidade**: cada artefato carrega trilha de geração e decisão (prompt/model/config) + build recipe.
+- **Modularidade linkavel**: "object files" LIA (`.liao`) geraveis em paralelo por multiplos agentes/modelos.
+- **Determinismo por construcao**: semantica expressa em constructs formais + verificacao no linker.
+- **Qualidade e boas praticas por default**: politicas, constraints e capabilities que impedem estados ruins.
+- **Extensibilidade**: plugins como *passes* (transform/verify/synthesize) e packs/stdlib reutilizaveis.
+- **Model-first**: a linguagem e desenhada primariamente para consumo/producao por modelos (nao por humanos).
+- **Reprodutibilidade**: cada artefato carrega trilha de geracao e decisao (prompt/model/config) + build recipe.
 
-Não é objetivo (v0.1):
+Nao e objetivo (v0.1):
 
-* gerar binário diretamente;
-* competir como linguagem geral livre (Java/Python);
-* provar correção de regras de negócio formalmente.
+- gerar binario diretamente;
+- competir como linguagem geral livre (Java/Python);
+- provar correcao de regras de negocio formalmente.
 
 ---
 
-## 0.1) Status de implementação (v0.1)
+## 0.1) Status de implementacao (v0.1)
 
-Esta spec descreve a linguagem **pretendida**. O toolchain atual implementa apenas um subconjunto:
+Esta spec descreve a linguagem **pretendida**. O toolchain atual implementa um subconjunto crescente:
 
-* Parser suporta: `project`, `module`, `use pack`, `repro`, `tape`.
-* Linker e lowerers são **stubs** (sem resolução de grafo/codegen real).
+- Parser suporta: `project`, `module`, `use pack`, `repro`, `tape`, mais o core da gramatica (types, enums, ports, usecases/adapters, wiring, constraints, preferencias, effects).
+- Derivacao de simbolos: `provides`/`requires` sao calculados a partir dos modulos.
+- Linker resolve `requires -> provides` de forma deterministica (regras v0.1).
+- Lowerers ainda sao **stubs** (sem codegen real por enquanto).
 
-Veja o **roadmap de implementação**: `docs/pt-br/roadmap.md` (e `docs/en/roadmap.md`).
+Veja o **roadmap de implementacao**: `docs/pt-br/ROADMAP.md` (e `docs/en/ROADMAP.md`).
 
 ## 1) Artefatos e pipeline
 
 ### 1.1 Tipos de arquivo
 
-* `*.lia`  — source LIA (texto authorável)
-* `*.liao` — **LIA object file** (AST canônico + símbolos + constraints + metadados)
-* `*.liap` — **LIA pack** (coleção versionada de `.liao` + manifest)
-* `*.lial` — **LIA linked unit** (“arquivão final” após link; ainda LIA, mas resolvido)
+- `*.lia`  — source LIA (texto authoravel)
+- `*.liao` — **LIA object file** (AST canonico + simbolos + constraints + metadados)
+- `*.liap` — **LIA pack** (colecao versionada de `.liao` + manifest)
+- `*.lial` — **LIA linked unit** ("arquivao final" apos link; ainda LIA, mas resolvido)
 
-### 1.2 Pipeline padrão
+### 1.2 Pipeline padrao
 
-1. **NL → geração de `.liao`** (paralelo)
+1. **NL → geracao de `.liao`** (paralelo)
 2. **Validate**: parse + typecheck + constraint checks (por objeto)
-3. **Link**: resolver símbolos + aplicar policies + selecionar implementações + merge
+3. **Link**: resolver simbolos + aplicar policies + selecionar implementacoes + merge
 4. **Lower/Transpile**: `*.lial` → AST do target → emitter (Java/Python/etc.)
 5. **Shadow/JIT checks** (opcional): compile/lint/test no target enquanto link/lower acontece
 
 ### 1.3 Modo de reprodutibilidade (build profile)
 
-A execução pode rodar em três perfis (definidos no `project`):
+A execucao pode rodar em tres perfis (definidos no `project`):
 
-* `repro = strict`  → determinismo máximo (restrições mais duras, proíbe decisões não rastreáveis)
-* `repro = pinned`  → dependências/versionamentos pinados; LLM permitido, mas com “tape” completo
-* `repro = best_effort` → produtividade > reprodutibilidade (ainda com logs)
+- `repro = strict`  → determinismo maximo (restricoes mais duras, proibe decisoes nao rastreaveis)
+- `repro = pinned`  → dependencias/versionamentos pinados; LLM permitido, mas com "tape" completo
+- `repro = best_effort` → produtividade > reprodutibilidade (ainda com logs)
 
 ---
 
-## 2) Modelo mental: o que é um object file `.liao`
+## 2) Modelo mental: o que e um object file `.liao`
 
-Um `.liao` representa um ou mais módulos contendo:
+Um `.liao` representa um ou mais modulos contendo:
 
-* AST canônico
-* tabela de símbolos
-* tipos
-* `requires` e `provides`
-* constraints (hard)
-* preferências (soft / scoring)
-* metadados RTF (Role‑Task‑Format)
-* **proveniência e recipe de geração** (reprodutibilidade)
+- AST canonico
+- tabela de simbolos
+- tipos
+- `requires` e `provides`
+- constraints (hard)
+- preferencias (soft / scoring)
+- metadados RTF (Role-Task-Format)
+- **proveniencia e recipe de geracao** (reprodutibilidade)
 
-### 2.1 Identidade e endereçamento por conteúdo
+### 2.1 Identidade e enderecamento por conteudo
 
 Cada `.liao` deve possuir:
 
-* `content_hash`: hash do AST canônico (ex.: SHA‑256 do JSON canônico)
-* `symbol_hash`: hash da tabela de símbolos
-* `api_fingerprint`: hash de exports públicos (para compat/ABI)
+- `content_hash`: hash do AST canonico (ex.: SHA-256 do JSON canonico)
+- `symbol_hash`: hash da tabela de simbolos
+- `api_fingerprint`: hash de exports publicos (para compat/ABI)
 
 Isso permite:
 
-* cache determinístico
-* deduplicação
-* tracking de mudanças semanticamente relevantes
+- cache deterministico
+- deduplicacao
+- tracking de mudancas semanticamente relevantes
 
-### 2.2 Canonicalização (regra central)
+### 2.2 Canonicalizacao (regra central)
 
 Para permitir hashing e diffs consistentes, LIA define:
 
-* ordenação estável de campos (lexicográfica)
-* normalização de whitespace
-* normalização de nomes qualificados (QName)
-* proibição de “campos livres” em áreas normativas
+- ordenacao estavel de campos (lexicografica)
+- normalizacao de whitespace
+- normalizacao de nomes qualificados (QName)
+- proibicao de "campos livres" em areas normativas
 
-### 2.3 Proveniência obrigatória (reprodutibilidade)
+### 2.3 Proveniencia obrigatoria (reprodutibilidade)
 
-**Todo** módulo (e opcionalmente todo tipo/símbolo público) deve carregar um bloco `@gen` (metadado estruturado):
+**Todo** modulo (e opcionalmente todo tipo/simbolo publico) deve carregar um bloco `@gen` (metadado estruturado):
 
-* `prompt_ref` (referência para o prompt usado)
-* `prompt_hash` (hash do prompt)
-* `model_id` (ex.: `gpt‑x.y` ou `llama‑…`)
-* `model_params` (temperature, top_p, seed quando suportado)
-* `context_refs` (packs, docs, regras, arquivos usados)
-* `tools_trace_refs` (IDs de chamadas a ferramentas, se houver)
-* `generator_pass` (nome/versão do pass que gerou)
-* `timestamp` (opcional)
+- `prompt_ref` (referencia para o prompt usado)
+- `prompt_hash` (hash do prompt)
+- `model_id` (ex.: `gpt-x.y` ou `llama-…`)
+- `model_params` (temperature, top_p, seed quando suportado)
+- `context_refs` (packs, docs, regras, arquivos usados)
+- `tools_trace_refs` (IDs de chamadas a ferramentas, se houver)
+- `generator_pass` (nome/versao do pass que gerou)
+- `timestamp` (opcional)
 
-> Observação: LLMs nem sempre são determinísticos mesmo com seed. A reprodutibilidade aqui é “**replayable + auditable**”: você consegue repetir a receita, comparar com hashes e entender divergências.
+> Observacao: LLMs nem sempre sao deterministicos mesmo com seed. A reprodutibilidade aqui e "**replayable + auditable**": voce consegue repetir a receita, comparar com hashes e entender divergencias.
 
 ### 2.4 Prompt Tape (fita de prompts) — artefato de projeto
 
 O projeto pode conter um `prompt_tape` (ou `gen_tape`) versionado:
 
-* mapeia `prompt_ref → prompt_body`
-* registra contexto efetivo (packs, versões, regras, arquivos)
-* registra parâmetros de geração
+- mapeia `prompt_ref → prompt_body`
+- registra contexto efetivo (packs, versoes, regras, arquivos)
+- registra parametros de geracao
 
-O `.liao` só precisa conter `prompt_ref` + hashes; o conteúdo do prompt pode ficar centralizado no tape.
+O `.liao` so precisa conter `prompt_ref` + hashes; o conteudo do prompt pode ficar centralizado no tape.
 
 ---
 
-## 3) Núcleo da linguagem (constructs)
+## 3) Nucleo da linguagem (constructs)
 
-### 3.1 Papéis (roles) de módulo
+### 3.1 Papeis (roles) de modulo
 
-Papéis explícitos para regras de dependência e capabilities:
+Papeis explicitos para regras de dependencia e capabilities:
 
-* `domain`
-* `usecase`
-* `port`
-* `adapter`
-* `wiring`
-* `policy`
+- `domain`
+- `usecase`
+- `port`
+- `adapter`
+- `wiring`
+- `policy`
 
-Extensão: `role <id>` via packs.
+Extensao: `role <id>` via packs.
 
-#### 3.1.1 Profiles de arquitetura (não dogma do core)
+#### 3.1.1 Profiles de arquitetura (nao dogma do core)
 
-Os roles acima **não tornam a LIA “hexagonal-only”**. Eles são um vocabulário base.
+Os roles acima **nao tornam a LIA "hexagonal-only"**. Eles sao um vocabulario base.
 Arquiteturas como *hexagonal*, *layered*, *clean* e *vertical slice* devem ser
-implementadas como **profiles** via packs + policies/constraints, e não hardcoded no core.
+implementadas como **profiles** via packs + policies/constraints, e nao hardcoded no core.
 
-### 3.2 Tipos (mínimo)
+### 3.2 Tipos (minimo)
 
-* primitivos: `Int`, `Bool`, `String`, `Decimal`, `Bytes`, `DateTime`
-* ADTs: `enum`, `record`, `option<T>`, `result<T, E>`
-* newtypes: `type Email = String where <predicate>`
+- primitivos: `Int`, `Bool`, `String`, `Decimal`, `Bytes`, `DateTime`
+- ADTs: `enum`, `record`, `option<T>`, `result<T, E>`
+- newtypes: `type Email = String where <predicate>`
 
-### 3.3 Efeitos (mínimo)
+### 3.3 Efeitos (minimo)
 
-* `pure` (sem IO)
-* `io` (pode usar capabilities externas)
-* `tx` (boundary transacional)
-* `emit` (publica evento — sujeito a policy)
+- `pure` (sem IO)
+- `io` (pode usar capabilities externas)
+- `tx` (boundary transacional)
+- `emit` (publica evento — sujeito a policy)
 
-### 3.4 “Holes” (lacunas) e refinamento monotônico (model‑first)
+### 3.4 Holes (lacunas) e refinamento monotonico (model-first)
 
-Para permitir geração incremental e paralela, LIA inclui nós de lacuna **tipados**:
+Para permitir geracao incremental e paralela, LIA inclui nos de lacuna **tipados**:
 
-* `hole <name>: <contract>`
-
-Exemplos de contrato:
-
-* “preciso de um adapter que implemente `OrderRepositoryPort`”
-* “preciso de mapping DTO↔Domain”
+- `hole <name>: <contract>`
 
 Regras:
 
-* holes **não** podem sobreviver até `*.lial` (link final) em `repro=strict`.
-* o linker pode preencher holes via **synthesize passes** ou seleção de packs.
+- holes **nao** podem sobreviver ate `*.lial` (link final) em `repro=strict`.
+- o linker pode preencher holes via **synthesize passes** ou selecao de packs.
 
-### 3.5 Multi‑candidatos por símbolo (para resolução de conflito)
+### 3.5 Multi-candidatos por simbolo (resolucao de conflito)
 
-Um `.liao` pode declarar **candidatos alternativos** para o mesmo slot/símbolo:
+Um `.liao` pode declarar **candidatos alternativos** para o mesmo slot/simbolo:
 
-* `candidate` com metadados de score e constraints locais.
+- `candidate` com metadados de score e constraints locais.
 
-O linker escolhe determinísticamente usando hard constraints + scoring.
+O linker escolhe deterministamente usando hard constraints + scoring.
 
 ---
 
@@ -189,129 +186,155 @@ O linker escolhe determinísticamente usando hard constraints + scoring.
 program        := { project | pack | module } ;
 
 project        := "project" Ident "{" { project_item } "}" ;
-project_item   := policy_decl | import_decl | use_decl | repro_decl | tape_decl ;
+project_item   := module | policy_decl | constraint_decl | use_decl | repro_decl | tape_decl ;
 
 pack           := "pack" Ident version? "{" { pack_item } "}" ;
 pack_item      := module | policy_decl | constraint_decl ;
 
-module         := doc? gen? "module" QName role_decl? "{" { module_item } "}" ;
+module         := gen? "module" QName role_decl? "{" { module_item } "}" ;
 role_decl      := "as" Ident ;
 
 gen            := "@gen" "{" gen_kv { "," gen_kv } "}" ;
+
+gen_kv         := Ident ":" literal ;
 
 module_item    := type_decl | enum_decl | port_decl | usecase_decl
                 | adapter_decl | wiring_decl | constraint_decl | prefer_decl
                 | hole_decl | candidate_decl ;
 
-hole_decl      := "hole" Ident ":" contract_expr ";" ;
+type_decl      := "type" Ident "=" type_ref ("where" expr)? ";" ;
 
-// docblocks
+enum_decl      := "enum" Ident "{" Ident { "," Ident } "}" ";"? ;
 
-doc            := "/**" { doc_line } "*/" ;
-doc_line       := "@" Ident doc_payload | text ;
+port_decl      := "port" Ident "{" { method_decl } "}" ;
+method_decl    := ("fn" | "method") Ident "(" field_list? ")" return_clause? ";" ;
+return_clause  := "->" "(" field_list? ")" ;
+
+usecase_decl   := "usecase" Ident "{" { usecase_item | stmt } "}" ;
+adapter_decl   := "adapter" Ident ("implements" QName)? "{" { usecase_item | stmt } "}" ;
+
+usecase_item   := input_block | output_block | effects_decl ;
+input_block    := "input" "{" field_list? "}" ";"? ;
+output_block   := "output" "{" field_list? "}" ";"? ;
+effects_decl   := "effects" "[" Ident { "," Ident } "]" ";"? ;
+
+wiring_decl    := "wiring" Ident "{" { bind_stmt } "}" ;
+bind_stmt      := "bind" QName "->" QName ";" ;
+
+constraint_decl:= "constraint" Ident ":" expr ";" ;
+prefer_decl    := "prefer" Ident ":" expr ("weight" number)? ";" ;
+
+hole_decl      := "hole" Ident ":" expr ";" ;
+
+candidate_decl := "candidate" QName ("score" number)?
+                  ("{" { constraint_decl | ("score" number ";") } "}")? ";"? ;
+
+field_list     := field { "," field } ;
+field          := Ident ":" type_ref ;
+
+type_ref       := token { token } ; // parseado como expressao de tipo bruta (sem typecheck)
+
+stmt           := let_stmt | assign_stmt | if_stmt | while_stmt | for_stmt
+                | return_stmt | break_stmt | continue_stmt | expr_stmt ;
+
+let_stmt       := "let" Ident "=" expr ";" ;
+assign_stmt    := Ident "=" expr ";" ;
+if_stmt        := "if" expr "{" { stmt } "}" ("else" "{" { stmt } "}")? ;
+while_stmt     := "while" expr "{" { stmt } "}" ;
+for_stmt       := "for" Ident "in" expr "{" { stmt } "}" ;
+return_stmt    := "return" expr? ";" ;
+break_stmt     := "break" ";" ;
+continue_stmt  := "continue" ";" ;
+expr_stmt      := expr ";" ;
+
+expr           := or_expr ;
+or_expr        := and_expr { "||" and_expr } ;
+and_expr       := equality { "&&" equality } ;
+equality       := comparison { ("==" | "!=") comparison } ;
+comparison     := term { ("<" | "<=" | ">" | ">=") term } ;
+term           := factor { ("+" | "-") factor } ;
+factor         := unary { ("*" | "/" | "%") unary } ;
+unary          := ("!" | "-") unary | call ;
+call           := primary { call_suffix } ;
+call_suffix    := "(" expr_list? ")" | "." Ident | "[" expr "]" ;
+expr_list      := expr { "," expr } ;
+primary        := Ident | number | string | "true" | "false" | "(" expr ")" | list_literal ;
+list_literal   := "[" expr_list? "]" ;
 ```
 
 ---
 
-## 5) Doc/RTF embutido (Role‑Task‑Format) — parte oficial
+## 5) Doc/RTF embutido (Role-Task-Format)
 
-### 5.1 Conceito
+Docblocks aceitam tags parseaveis. `@rtf` define um **Prompt Capsule** anexado ao no AST.
 
-Docblocks aceitam tags parseáveis. `@rtf` define um **Prompt Capsule** anexado ao nó AST.
+Regras:
 
-### 5.2 Tag `@rtf`
-
-Formato mínimo:
-
-* `role` (quem)
-* `task` (o que)
-* `format` (como entregar)
-
-Campos recomendados (model‑first):
-
-* `inputs` (lista)
-* `must` (lista de invariantes)
-* `avoid` (lista de anti‑padrões)
-* `tests` (lista de testes desejados)
-* `repair` (roteiro de correção quando falhar)
-* `merge` (sugestão de estratégia; não enfraquece constraints)
-
-### 5.3 Regras de segurança
-
-* Texto de `@rtf` é **não‑normativo**.
-* `@rtf` nunca pode relaxar `constraint`/`policy`.
-* Em `repro=strict`, `@rtf` só é aceito se estiver associado a um `@gen.prompt_ref` válido.
+- Texto de `@rtf` e **nao-normativo**.
+- `@rtf` nunca pode relaxar `constraint`/`policy`.
+- Em `repro=strict`, `@rtf` so e aceito se estiver associado a um `@gen.prompt_ref` valido.
 
 ---
 
-## 6) Policies, constraints, preferências e budgets
+## 6) Policies, constraints, preferencias e budgets
 
-### 6.1 Hard constraints (determinísticas)
+### 6.1 Hard constraints (deterministicas)
 
-Constraints são expressões booleanas sobre:
+Constraints sao expressoes booleanas sobre:
 
-* papéis (`role`)
-* dependências (`imports`)
-* efeitos (`effects`)
-* capabilities (`capability`)
-* (futuro) fluxo de dados
+- papeis (`role`)
+- dependencias (`imports`)
+- efeitos (`effects`)
+- capabilities (`capability`)
+- (futuro) fluxo de dados
 
-Exemplos:
+### 6.2 Preferencias (soft; scoring)
 
-* proibir IO em domain
-* proibir dependência domain→adapter
+Preferencias influenciam selecao entre candidatos validos.
 
-### 6.2 Preferências (soft; scoring)
-
-Preferências influenciam seleção entre candidatos válidos.
-
-### 6.3 Budgets (anti over‑engineering)
+### 6.3 Budgets (anti over-engineering)
 
 Policies podem impor:
 
-* máximo de layers/módulos/deps
-* limites de complexidade
-* limites de boilerplate
-
-> Em um projeto “simple”, budgets evitam que a stdlib de padrões exploda o shape.
+- maximo de layers/modulos/deps
+- limites de complexidade
+- limites de boilerplate
 
 ---
 
-## 7) Sistema de símbolos e linking
+## 7) Sistema de simbolos e linking
 
-### 7.1 Identidade de símbolos
+### 7.1 Identidade de simbolos
 
-Símbolo canônico:
+Simbolo canonico:
 
-* `QName = <pack?>::<module>::<symbol>`
+- `QName = <module>::<kind>:<name>`
 
 Cada `.liao` declara:
 
-* `provides` (exports)
-* `requires` (imports)
+- `provides` (exports)
+- `requires` (imports)
 
-### 7.2 Linker determinístico (v0.1)
+### 7.2 Linker deterministico (v0.1)
 
 1. Load: `.liao` + packs
-2. Graph: construir grafo `requires→provides`
-3. Filter: remover candidatos que violam hard constraints
-4. Select: rankear por preferências (score determinístico)
-5. Tie‑break: regras fixas (semver desc, stability desc, deps asc, id lexical)
+2. Graph: construir grafo `requires → provides`
+3. Filter: remover candidatos que violam hard constraints (subconjunto v0.1)
+4. Select: rankear por preferencias e candidate scores
+5. Tie-break: regras fixas (score desc, deps asc, id lexical)
 6. Merge: `choose-one | rename | wrap | adapt`
 7. Verify: revalidar constraints no grafo final
-8. Emit: `*.lial` + relatório (trace)
+8. Emit: `*.lial` + decision log
 
-### 7.3 Link Trace (proveniência de decisão)
+### 7.3 Link Trace (proveniencia de decisao)
 
-O linker deve emitir um **Decision Log** canônico contendo:
+O linker deve emitir um **Decision Log** contendo:
 
-* seleção de cada símbolo (candidato escolhido)
-* score por critério
-* constraints aplicadas
-* tie‑break usado
-* merges executados
+- selecao por simbolo requerido
+- score e criterio de tie-break
+- constraints aplicadas
 
-Esse log deve ser hashável e versionado (replay).
+Esse log deve ser canonico e hashavel (replay).
 
 ---
 
@@ -319,26 +342,26 @@ Esse log deve ser hashável e versionado (replay).
 
 ### 8.1 Tipos de pass
 
-* `verify` (valida; não altera)
-* `transform` (reescreve deterministicamente)
-* `synthesize` (preenche holes / gera módulos faltantes)
+- `verify` (valida; nao altera)
+- `transform` (reescreve deterministicamente)
+- `synthesize` (preenche holes / gera modulos faltantes)
 
-### 8.2 Contrato de saída (model‑first)
+### 8.2 Contrato de saida (model-first)
 
 Quando um pass usar LLM, ele deve emitir:
 
-* **patch estruturado** (não “texto livre”), ex.: `lia.patch` (AST delta)
-* `@gen` completo (prompt_ref + modelo + params)
-* hashes antes/depois
+- **patch estruturado** (nao "texto livre"), ex.: `lia.patch` (AST delta)
+- `@gen` completo (prompt_ref + modelo + params)
+- hashes antes/depois
 
 ### 8.3 Replay de synth passes
 
 O pass deve conseguir rodar em modo:
 
-* `replay`: reaplica patch gravado
-* `regenerate`: tenta reconstruir via prompt (auditable)
+- `replay`: reaplica patch gravado
+- `regenerate`: tenta reconstruir via prompt (auditable)
 
-Em `repro=strict`, `regenerate` só é aceito se o patch final bater os hashes/constraints esperados.
+Em `repro=strict`, `regenerate` so e aceito se o patch final bater os hashes/constraints esperados.
 
 ---
 
@@ -346,25 +369,25 @@ Em `repro=strict`, `regenerate` só é aceito se o patch final bater os hashes/c
 
 Durante link/lower:
 
-* lowering incremental para AST do target
-* compile/lint/smoke tests
-* feedback rápido para synth passes
+- lowering incremental para AST do target
+- compile/lint/smoke tests
+- feedback rapido para synth passes
 
-O resultado vira diagnósticos que o linker pode usar para preferir candidatos “mais saudáveis”.
+O resultado vira diagnosticos que o linker pode usar para preferir candidatos "mais saudaveis".
 
 ---
 
-## 10) Lowering/transpilação (v0.1)
+## 10) Lowering/transpilacao (v0.1)
 
 Regras:
 
-* LIA → AST do target → emitter
-* mapping por backend (Java/Python)
-* policies podem virar interceptors/wrappers/config
+- LIA → AST do target → emitter
+- mapping por backend (Java/Python)
+- policies podem virar interceptors/wrappers/config
 
 ---
 
-## 11) Exemplo mínimo (com reprodutibilidade)
+## 11) Exemplo minimo (com reprodutibilidade)
 
 ```lia
 project OrderSvc {
@@ -385,21 +408,21 @@ project OrderSvc {
 
 ---
 
-## 12) Features adicionais (model‑first) para considerar no v0.2
+## 12) Features adicionais (model-first) para considerar no v0.2
 
-1. **Assumptions & Open Questions**: anotações estruturadas `@assumption`, `@open_question` para reduzir alucinação e facilitar revisão.
-2. **Uncertainty budget**: permitir que o modelo declare incerteza e force validação/testes extras antes do link final.
-3. **Semantic diffs**: `lia.patch` como formato oficial para edições incrementais (melhor para agentes do que reescrever arquivos).
-4. **Safety rails**: proibir que texto livre (“hints/rtf”) altere políticas; “policy is code”.
-5. **Contract tests as artifacts**: permitir declarar testes como parte do IR e exigí-los por policy.
-6. **Backpressure/Work‑stealing**: scheduler de geração paralela com prioridades por dependency graph.
+1. **Assumptions & Open Questions**: anotacoes estruturadas `@assumption`, `@open_question` para reduzir alucinacao e facilitar revisao.
+2. **Uncertainty budget**: permitir que o modelo declare incerteza e force validacao/testes extras antes do link final.
+3. **Semantic diffs**: `lia.patch` como formato oficial para edicoes incrementais.
+4. **Safety rails**: proibir que texto livre ("hints/rtf") altere politicas; "policy is code".
+5. **Contract tests as artifacts**: permitir declarar testes como parte do IR e exige-los por policy.
+6. **Backpressure/Work-stealing**: scheduler de geracao paralela com prioridades por dependency graph.
 7. **Content-addressable pack registry**: packs versionados por hash + semver.
 
 ---
 
-## 13) Perguntas abertas (para orientar o próximo refinamento)
+## 13) Perguntas abertas (para orientar o proximo refinamento)
 
-* O “corpo” de `usecase`/`adapter` será imperativo minimalista ou declarativo (steps/grafo)?
-* Capabilities serão só annotations (v0.1) ou tokens reais (modelo de segurança forte)?
-* O `.liao` canônico será JSON ou binário (ou ambos)?
-* Qual primeiro target (Java/Spring vs Python/FastAPI) para guiar o lowering mínimo?
+- O "corpo" de `usecase`/`adapter` sera imperativo minimalista ou declarativo (steps/grafo)?
+- Capabilities serao so annotations (v0.1) ou tokens reais (modelo de seguranca forte)?
+- O `.liao` canonico sera JSON ou binario (ou ambos)?
+- Qual primeiro target (Java/Spring vs Python/FastAPI) para guiar o lowering minimo?

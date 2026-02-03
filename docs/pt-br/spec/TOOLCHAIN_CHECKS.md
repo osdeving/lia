@@ -18,6 +18,7 @@ Checklist mínimo:
    - Proibir `map[string]any` em áreas normativas do IR.
 
 3) **Regras locais por role/effect**
+   - Validar nomes de efeitos (`pure`, `io`, `tx`, `emit`) e proibir `pure` com outros efeitos.
    - Aplicar constraints locais (ex.: `domain` não pode `io`/`tx`).
    - Validar efeitos declarados vs role (ex.: `port` sem `io`).
 
@@ -40,7 +41,7 @@ Checklist mínimo:
 Checklist mínimo:
 
 1) **Grafo de dependências**
-   - Construir `requires -> provides`.
+   - Construir `requires -> provides` (derivando símbolos quando faltarem).
    - Detectar símbolos ausentes e colisões.
 
 2) **Constraints globais (hard)**
@@ -49,7 +50,7 @@ Checklist mínimo:
 
 3) **Seleção determinística**
    - Aplicar preferências (soft) e score.
-   - Tie-break fixo: semver desc, stability desc, deps asc, lexical.
+   - Tie-break fixo: score desc, deps asc, lexical.
 
 4) **Merges explícitos**
    - `choose-one | rename | wrap | adapt` conforme política.

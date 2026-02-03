@@ -5,8 +5,33 @@ project OrderSvc {
   use pack ArchBaseline@0.1.0;
   use pack SecurityBaseline@0.1.0;
 
-  module orders.core as domain {
+  module orders.domain as domain {
     enum OrderStatus { NEW, PAID, CANCELLED };
     type OrderId = String where nonEmpty;
+  }
+
+  module orders.port as port {
+    port OrderRepository {
+      fn Get(id: String) -> (order: String);
+    }
+  }
+
+  module orders.app as usecase {
+    usecase CreateOrder {
+      input { id: String };
+      output { ok: Bool };
+      effects [io];
+      let ok = true;
+      return ok;
+    }
+
+    adapter OrdersDb implements orders.port::port:OrderRepository {
+      effects [io];
+      return true;
+    }
+
+    wiring OrdersWiring {
+      bind orders.port::port:OrderRepository -> orders.app::adapter:OrdersDb;
+    }
   }
 }

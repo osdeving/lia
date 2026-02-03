@@ -15,10 +15,11 @@ Este documento é o plano de implementação para tornar a LIA uma linguagem/IR 
 ## Estado atual (v0.1 na develop)
 
 - CLI: parse/check/link/explain/lower (stubs em partes).
-- Parser: **subconjunto muito pequeno** (`project`, `module`, `use pack`, `repro`, `tape`).
+- Parser: gramática core (types, enums, ports, usecases/adapters, wiring, constraints, preferences, effects).
 - Estruturas IR + JSON canônico + hashing.
+- Derivação de símbolos (`provides`/`requires`) a partir dos módulos.
 - Carregador de packs (pseudo‑LIA) + motor mínimo de políticas.
-- Linker: stub (sem resolução de grafo/seleção).
+- Linker: resolução determinística e decision log (regras v0.1).
 - Lowerers: stubs.
 
 ## O que significa “mais completo”
@@ -105,6 +106,6 @@ Uma LIA mais completa deve suportar:
 
 ## Próximos passos imediatos
 
-1) Expandir gramática e parser (M1).
-2) Introduzir symbol table + requires/provides (M2).
-3) Linker determinístico (M3).
+1) Enforcement de políticas (M4).
+2) Primeiro lowering real (M5).
+3) Tooling e reprodutibilidade (M6).

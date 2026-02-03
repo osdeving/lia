@@ -15,10 +15,11 @@ This doc is the implementation plan for making LIA a more complete language/IR. 
 ## Current state (v0.1 on develop)
 
 - CLI: parse/check/link/explain/lower (stubs in parts).
-- Parser: **very small subset** (`project`, `module`, `use pack`, `repro`, `tape`).
+- Parser: core grammar (types, enums, ports, usecases/adapters, wiring, constraints, preferences, effects).
 - IR structs + canonical JSON + hashing.
+- Symbol derivation (`provides`/`requires`) from module contents.
 - Pack loader (pseudo‑LIA packs) + minimal policy engine.
-- Linker: stub (no graph resolution/selection).
+- Linker: deterministic resolution and decision log (v0.1 rules).
 - Lowerers: stubs.
 
 ## What “more complete” means
@@ -105,6 +106,6 @@ A more complete LIA should support:
 
 ## Immediate next steps
 
-1) Expand the grammar and parser (M1).
-2) Introduce symbol table + requires/provides (M2).
-3) Deterministic linker selection (M3).
+1) Policy enforcement (M4).
+2) First real lowering target (M5).
+3) Reproducibility hardening (M6).
