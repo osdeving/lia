@@ -1,9 +1,0 @@
-com/example/orders/domain/OrderStatus.class
-com/example/orders/infrastructure/InMemoryOrderRepository.class
-com/example/orders/OrdersApplication.class
-com/example/orders/application/CreateOrderInput.class
-com/example/orders/bootstrap/OrdersConfiguration.class
-com/example/orders/application/CreateOrderUseCase.class
-com/example/orders/domain/OrderId.class
-com/example/orders/port/OrderRepository.class
-com/example/orders/application/CreateOrderOutput.class
