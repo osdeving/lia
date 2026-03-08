@@ -1,0 +1,28 @@
+{
+  "name": "OrdersComparisonDemo",
+  "brief": "Build a small order service with explicit domain vocabulary, a repository contract, one create-order use case, one concrete adapter, and a visible wiring/bootstrap layer.",
+  "repro": "pinned",
+  "packs": [
+    {
+      "name": "ArchBaseline",
+      "version": "0.1.0"
+    }
+  ],
+  "modules": [
+    {
+      "name": "orders.domain",
+      "role": "domain",
+      "context": "Define OrderId and OrderStatus."
+    },
+    {
+      "name": "orders.port",
+      "role": "port",
+      "context": "Expose an OrderRepository contract with Save and Get operations using OrderId."
+    },
+    {
+      "name": "orders.app",
+      "role": "usecase",
+      "context": "Create the CreateOrder usecase, one adapter implementing OrderRepository, and one wiring block."
+    }
+  ]
+}

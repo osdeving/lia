@@ -14,14 +14,20 @@
 - `lia explain <file.lial> --decision-log out.lial.decision-log.json`
   - prints hash + summary
 
-- `lia lower <file.lial> --target java|python -o out.java|out.py`
-  - stub lowerers
+- `lia lower <file.lial> --target java --out-dir out-dir`
+  - emits a multi-file Java project from `.lial`
+
+- `lia lower <file.lial> --target python -o out.py`
+  - Python lowering is still a stub
 
 - `lia replay <file.lial> --tape prompt-tape.json`
   - validates `@gen.prompt_ref` and `@gen.prompt_hash` against the tape
 
 - `lia gen project --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
   - uses AI to generate a LIA project from a JSON spec and already runs parse/check/link/replay
+
+- `lia demo compare --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
+  - generates `direct Java` and `LIA -> Java`, compiles both branches, and writes `COMPARISON.md`
 
 ## Pack loading
 

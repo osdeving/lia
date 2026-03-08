@@ -11,6 +11,8 @@ This document describes what LIA currently supports in code, what already works 
 - `lia replay`: validates `.lial` against `prompt-tape.json` using `@gen.prompt_ref` and `@gen.prompt_hash`.
 - `internal/llmgen`: writes canonical prompt tapes and parses LIA returned by the provider.
 - `lia gen project`: bootstraps a LIA project from `project-spec.json` plus a compatible provider.
+- `lia lower --target java`: emits a compilable multi-file Java project from `.lial`.
+- `lia demo compare`: compares `direct Java` vs `LIA -> Java` from the same brief.
 
 ## Keywords supported today
 
@@ -88,7 +90,8 @@ This document describes what LIA currently supports in code, what already works 
 - `policy` and `constraint` are `raw_expr`; only a subset is enforced today.
 - `hole` is parsed and validated in `strict`, but there is still no automatic hole resolution.
 - `candidate` already affects scoring, but there is no full synthesis/substitution mechanism yet.
-- `lower` is still a stub for Java/Python.
+- `lower` is real for Java, but Python is still a stub.
+- the Java lower still uses conservative placeholder records when the LIA references undeclared types.
 
 ## How to test the current state
 
@@ -115,6 +118,41 @@ Expected result:
 - `check` ends with `ok`
 - `link` emits `.lial` and `decision-log.json`
 - `replay` reports `modules 3, generated 3, validated 3`
+
+### Java lower smoke test
+
+```bash
+go run ./cmd/lia lower /tmp/full-pipeline.lial --target java --out-dir /tmp/full-pipeline-java
+javac $(find /tmp/full-pipeline-java/src/main/java -name '*.java')
+```
+
+Expected result:
+
+- `lower` writes a Java project under `/tmp/full-pipeline-java`
+- `javac` finishes without errors
+
+### Direct Java vs LIA demo
+
+```bash
+go run ./cmd/lia demo compare \
+  --spec ./examples/demo-compare/project-spec.json \
+  --provider openai-compatible \
+  --base-url https://api.openai.com \
+  --model gpt-4o-mini \
+  --temperature 0.1 \
+  --out-dir /tmp/java-compare-demo \
+  --reference-dir ./examples/java-reference/orders-service \
+  --pack-dir ./docs/pt-br/spec/packs
+```
+
+Expected artifacts:
+
+- `COMPARISON.md`
+- `direct-java/`
+- `lia-artifacts/project.lia`
+- `lia-artifacts/prompt-tape.json`
+- `lia-artifacts/project.lial.decision-log.json`
+- `lia-java/`
 
 ## Using it with AI today
 

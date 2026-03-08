@@ -14,14 +14,20 @@
 - `lia explain <file.lial> --decision-log out.lial.decision-log.json`
   - imprime hash + resumo
 
-- `lia lower <file.lial> --target java|python -o out.java|out.py`
-  - lowerers stub
+- `lia lower <file.lial> --target java --out-dir out-dir`
+  - gera um projeto Java multi-arquivo a partir do `.lial`
+
+- `lia lower <file.lial> --target python -o out.py`
+  - lower Python ainda é stub
 
 - `lia replay <file.lial> --tape prompt-tape.json`
   - valida `@gen.prompt_ref` e `@gen.prompt_hash` contra o tape
 
 - `lia gen project --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
   - usa IA para gerar um projeto LIA a partir de uma spec JSON e já roda parse/check/link/replay
+
+- `lia demo compare --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
+  - gera `Java direto` e `LIA -> Java`, compila os dois ramos e escreve `COMPARISON.md`
 
 ## Carregamento de packs
 

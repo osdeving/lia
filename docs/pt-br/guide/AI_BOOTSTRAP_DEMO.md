@@ -96,12 +96,13 @@ A mensagem é:
 
 ## Limite atual
 
-O comando já cria um projeto LIA do zero a partir de uma spec estruturada, mas ainda não faz lowering real para Java/Python.
+O comando já cria um projeto LIA do zero a partir de uma spec estruturada e agora já existe lowering real para Java.
 
-Então a demonstração correta hoje é:
+Então hoje a demonstração correta pode ser:
 
 - **prompt/spec -> projeto LIA validado**
+- **prompt/spec -> LIA -> projeto Java compilável**
 
-Não ainda:
+Ainda não:
 
-- **prompt/spec -> aplicação Java final pronta para produção**
+- **prompt/spec -> aplicação Java final pronta para produção com typechecker semântico, runtime e policies completas**

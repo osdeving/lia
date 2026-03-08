@@ -11,6 +11,8 @@ Este documento descreve o que a LIA suporta hoje no código, o que já funciona 
 - `lia replay`: validação do `.lial` contra `prompt-tape.json` usando `@gen.prompt_ref` e `@gen.prompt_hash`.
 - `internal/llmgen`: grava prompt tape no formato canônico e parseia o LIA devolvido pelo provider.
 - `lia gen project`: bootstrap de projeto LIA a partir de `project-spec.json` + provider compatível.
+- `lia lower --target java`: gera projeto Java multi-arquivo compilável a partir do `.lial`.
+- `lia demo compare`: compara `Java direto` vs `LIA -> Java` com o mesmo briefing.
 
 ## Palavras-chave suportadas hoje
 
@@ -88,7 +90,8 @@ Este documento descreve o que a LIA suporta hoje no código, o que já funciona 
 - `policy` e `constraint` são `raw_expr`; só um subconjunto é realmente aplicado.
 - `hole` é parseado e validado em `strict`, mas ainda não existe resolução automática de holes.
 - `candidate` já influencia score, mas ainda não existe mecanismo completo de síntese/substituição.
-- `lower` continua stub para Java/Python.
+- `lower` já é real para Java, mas Python continua stub.
+- o lower Java ainda usa placeholders conservadores quando o LIA referencia tipos não declarados.
 
 ## Como testar o estado atual
 
@@ -115,6 +118,41 @@ Resultado esperado:
 - `check` termina com `ok`
 - `link` gera `.lial` e `decision-log.json`
 - `replay` reporta `modules 3, generated 3, validated 3`
+
+### Smoke test do lower Java
+
+```bash
+go run ./cmd/lia lower /tmp/full-pipeline.lial --target java --out-dir /tmp/full-pipeline-java
+javac $(find /tmp/full-pipeline-java/src/main/java -name '*.java')
+```
+
+Resultado esperado:
+
+- o comando `lower` escreve um projeto Java em `/tmp/full-pipeline-java`
+- `javac` termina sem erro
+
+### Demo comparativa Java direto vs LIA
+
+```bash
+go run ./cmd/lia demo compare \
+  --spec ./examples/demo-compare/project-spec.json \
+  --provider openai-compatible \
+  --base-url https://api.openai.com \
+  --model gpt-4o-mini \
+  --temperature 0.1 \
+  --out-dir /tmp/java-compare-demo \
+  --reference-dir ./examples/java-reference/orders-service \
+  --pack-dir ./docs/pt-br/spec/packs
+```
+
+Artefatos esperados:
+
+- `COMPARISON.md`
+- `direct-java/`
+- `lia-artifacts/project.lia`
+- `lia-artifacts/prompt-tape.json`
+- `lia-artifacts/project.lial.decision-log.json`
+- `lia-java/`
 
 ## Como usar com IA agora
 

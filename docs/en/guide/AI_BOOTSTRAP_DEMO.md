@@ -96,12 +96,13 @@ The right message is:
 
 ## Current limit
 
-The command already bootstraps a LIA project from a structured spec, but it still does not do real Java/Python lowering.
+The command already bootstraps a LIA project from a structured spec and now there is a real Java lower.
 
-So the correct demo today is:
+So the correct demo today can be:
 
 - **prompt/spec -> validated LIA project**
+- **prompt/spec -> LIA -> compilable Java project**
 
 Not yet:
 
-- **prompt/spec -> production-ready final Java application**
+- **prompt/spec -> production-ready final Java application with semantic typing, runtime conventions, and full policy enforcement**

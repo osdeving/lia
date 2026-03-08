@@ -36,7 +36,7 @@ Este repositório é o toolchain da LIA em **Go**, cobrindo:
 - check/constraints (base)
 - linker/solver (grafo + seleção + merge)
 - passes internos (verify/transform/synthesize)
-- lowering (stubs Java/Python)
+- lowering (Java real, Python stub)
 - reprodutibilidade (prompt tape + @gen)
 
 ---
@@ -91,7 +91,7 @@ lia/
 
 ## CLI (v0.1)
 
-Comandos disponíveis (stubs iniciais):
+Comandos disponíveis:
 
 - `lia parse <file.lia> -o out.liao`
 - `lia check <file.liao>`
@@ -99,8 +99,11 @@ Comandos disponíveis (stubs iniciais):
 - `lia check ... --pack-dir ./docs/pt-br/spec/packs` (ou `./docs/en/spec/packs`)
 - `lia link ... --pack-dir ./docs/pt-br/spec/packs` (ou `./docs/en/spec/packs`)
 - `lia explain <file.lial> --decision-log out.lial.decision-log.json`
-- `lia lower <file.lial> --target java|python -o out.java|out.py`
-- `lia replay <file.lial> --tape prompt-tape.json` (stub)
+- `lia lower <file.lial> --target java --out-dir out-dir`
+- `lia lower <file.lial> --target python -o out.py`
+- `lia replay <file.lial> --tape prompt-tape.json`
+- `lia gen project --spec project-spec.json --provider ... --model ... --out-dir out-dir`
+- `lia demo compare --spec project-spec.json --provider ... --model ... --out-dir out-dir`
 
 ---
 

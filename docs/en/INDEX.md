@@ -8,6 +8,7 @@ This repository is a toolchain + spec for LIA. Use the layers below to navigate.
 - `guide/GETTING_STARTED.md` — 10-minute MVP run
 - `guide/LANGUAGE_STATUS.md` — what works today, supported keywords, and gaps
 - `guide/AI_BOOTSTRAP_DEMO.md` — before/after demo for AI-driven bootstrap
+- `guide/JAVA_COMPARISON_DEMO.md` — repeatable direct-Java vs LIA-to-Java comparison demo
 
 ## 1. System overview
 

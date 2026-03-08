@@ -11,13 +11,15 @@ This document is a plain checklist for contributors.
 - prompt tape validation through `lia replay`
 - canonical prompt tape writing in `internal/llmgen`
 - smoke-test fixture under `examples/full-pipeline/`
+- real Java lowering from `.lial`
+- comparative demo `Java direto` vs `LIA -> Java`
 
 ## We don't have (yet)
 
 - full semantic typechecker
 - full policy DSL enforcement
 - automatic hole resolution / synthesis
-- real lowerers
+- Python lowering
 - plugin runtime
 
 ## How to prove it works
