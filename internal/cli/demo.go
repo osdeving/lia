@@ -105,7 +105,7 @@ var demoCompareCmd = &cobra.Command{
 		loweredVariants := map[lowerjava.Profile]comparisonVariant{}
 		for _, profile := range liaProfiles {
 			liaJavaDir := compareLIAJavaDir(outDir, profile)
-			loweredProject, err := lowerjava.LowerProjectWithOptions(liaResult.Linked, lowerjava.Options{Profile: profile})
+			loweredProject, err := lowerjava.LowerProjectWithOptions(liaResult.Linked, lowerjava.Options{Profile: profile, Strict: true})
 			if err != nil {
 				return err
 			}
@@ -235,6 +235,7 @@ type javaProjectMetrics struct {
 	QuarkusScopes   int
 	QuarkusProduces int
 	LoweringReports int
+	AdapterStubs    int
 }
 
 type comparisonVariant struct {
@@ -573,6 +574,7 @@ func analyzeJavaProject(dir string) javaProjectMetrics {
 		if strings.Contains(normPath, "Wiring.java") || strings.Contains(text, "Wiring") {
 			metrics.WiringClasses++
 		}
+		metrics.AdapterStubs += strings.Count(text, "Deterministic adapter stub generated from LIA binding.")
 		if strings.Contains(text, "@SpringBootApplication") {
 			metrics.SpringBootApps++
 		}
@@ -817,6 +819,9 @@ func liaStrengthNotes(lia comparisonVariant, profile lowerjava.Profile, liaResul
 	}
 	if lia.Metrics.UsecaseClasses > 0 {
 		notes = append(notes, "Casos de uso viraram classes com dependencias explicitas por construtor.")
+	}
+	if lia.Metrics.AdapterStubs == 0 {
+		notes = append(notes, "O branch LIA comparado nao precisou de adapter stubs no Java final.")
 	}
 	if lia.Metrics.LoweringReports > 0 {
 		notes = append(notes, "O projeto final inclui `LOWERING_REPORT.md` explicando como a semantica LIA foi preservada no Java.")

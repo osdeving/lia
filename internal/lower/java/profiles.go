@@ -22,6 +22,7 @@ const (
 // Options configures Java lowering.
 type Options struct {
 	Profile Profile
+	Strict  bool
 }
 
 func (o Options) normalizedProfile() Profile {
@@ -57,7 +58,7 @@ func LowerProject(p *ir.Program) (*Project, error) {
 
 // LowerProjectWithOptions lowers using the requested deterministic Java profile.
 func LowerProjectWithOptions(p *ir.Program, opts Options) (*Project, error) {
-	return lowerProjectWithProfile(p, opts.normalizedProfile())
+	return lowerProjectWithOptions(p, opts)
 }
 
 func renderPomForProfile(projectName string, profile Profile) string {

@@ -78,6 +78,7 @@ var genAppCmd = &cobra.Command{
 		target, _ := cmd.Flags().GetString("target")
 		javaProfileName, _ := cmd.Flags().GetString("java-profile")
 		javaProfilesValue, _ := cmd.Flags().GetString("java-profiles")
+		javaStrict, _ := cmd.Flags().GetBool("java-strict")
 
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -149,7 +150,7 @@ var genAppCmd = &cobra.Command{
 			multi := len(profiles) > 1
 			for _, profile := range profiles {
 				javaOut := javaProfileOutputDir(outDir, profile, multi)
-				project, err := java.LowerProjectWithOptions(result.Linked, java.Options{Profile: profile})
+				project, err := java.LowerProjectWithOptions(result.Linked, java.Options{Profile: profile, Strict: javaStrict})
 				if err != nil {
 					return err
 				}
@@ -203,6 +204,7 @@ func init() {
 	genAppCmd.Flags().String("manifest", "lia.json", "optional workspace manifest")
 	genAppCmd.Flags().String("target", "java", "output target: java|none")
 	addJavaProfileFlags(genAppCmd.Flags())
+	genAppCmd.Flags().Bool("java-strict", false, "fail instead of generating placeholders or adapter stubs in java lowering")
 	addPackDirFlag(genAppCmd)
 	addGenerationFlags(genAppCmd)
 }

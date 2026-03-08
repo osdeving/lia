@@ -126,6 +126,7 @@ Hard rules:
 - usecase modules may declare usecase, adapter, wiring, prefer, hole, constraint
 - never emit keywords such as contract, record, class, interface, struct, impl, package, import, match
 - every field and parameter must use Name: Type syntax
+- every non-built-in type you reference must be declared somewhere in the project; never invent undeclared types
 - every statement must end with ';' when required by the grammar
 - if role is domain, do not use io
 

@@ -108,6 +108,86 @@ func TestLowerProject_ProfilesEmitFrameworkMarkers(t *testing.T) {
 	}
 }
 
+func TestLowerProject_StrictFailsOnUnknownType(t *testing.T) {
+	prog, err := parser.ParseString(`project Demo {
+  module orders.domain as domain {
+    type OrderId = String where nonEmpty;
+  }
+  module orders.port as port {
+    port OrderRepository {
+      fn Get(id: OrderId) -> (order: Order);
+    }
+  }
+}`)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	linkedProgram, _, _, err := linker.Link([]*ir.Program{prog}, nil)
+	if err != nil {
+		t.Fatalf("link failed: %v", err)
+	}
+
+	_, err = LowerProjectWithOptions(linkedProgram, Options{Profile: ProfilePlain, Strict: true})
+	if err == nil || !strings.Contains(err.Error(), "requires all referenced types to be declared") {
+		t.Fatalf("expected strict unknown type failure, got: %v", err)
+	}
+}
+
+func TestLowerProject_StrictLowersSingleMethodAdapterWithoutStub(t *testing.T) {
+	prog, err := parser.ParseString(`project Demo {
+  module orders.domain as domain {
+    type OrderId = String where nonEmpty;
+  }
+  module orders.port as port {
+    port OrderRepository {
+      fn Save(id: OrderId) -> (ok: Bool);
+    }
+  }
+  module orders.app as usecase {
+    usecase CreateOrder {
+      input { id: OrderId };
+      output { ok: Bool };
+      effects [io];
+      let saved = Save(id);
+      return saved;
+    }
+    adapter OrdersDb implements orders.port::port:OrderRepository {
+      input { id: OrderId };
+      output { ok: Bool };
+      effects [io];
+      return true;
+    }
+    wiring OrdersWiring {
+      bind orders.port::port:OrderRepository -> orders.app::adapter:OrdersDb;
+    }
+  }
+}`)
+	if err != nil {
+		t.Fatalf("parse failed: %v", err)
+	}
+	linkedProgram, _, _, err := linker.Link([]*ir.Program{prog}, nil)
+	if err != nil {
+		t.Fatalf("link failed: %v", err)
+	}
+
+	project, err := LowerProjectWithOptions(linkedProgram, Options{Profile: ProfileSpringBoot, Strict: true})
+	if err != nil {
+		t.Fatalf("strict lower failed: %v", err)
+	}
+
+	outDir := t.TempDir()
+	if err := WriteProject(outDir, project); err != nil {
+		t.Fatalf("write project failed: %v", err)
+	}
+	allText := readAllGeneratedText(t, outDir)
+	if strings.Contains(allText, "Deterministic adapter stub generated from LIA binding.") {
+		t.Fatal("expected strict lower to avoid adapter stubs")
+	}
+	if strings.Contains(allText, "Placeholders conservadores") {
+		t.Fatal("expected strict lower to avoid placeholders")
+	}
+}
+
 func collectGeneratedJavaFiles(dir string) []string {
 	var files []string
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {

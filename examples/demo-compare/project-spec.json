@@ -17,7 +17,7 @@
     {
       "name": "orders.port",
       "role": "port",
-      "context": "Expose an OrderRepository contract with Save and Get operations using OrderId."
+      "context": "Expose an OrderRepository contract with a Save operation using OrderId."
     },
     {
       "name": "orders.app",

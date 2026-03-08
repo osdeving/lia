@@ -32,6 +32,7 @@ func CheckProgram(p *ir.Program, packs []ir.Pack) []ir.Diagnostic {
 
 	diags = append(diags, symbols.DeriveProgramSymbols(p)...)
 	diags = append(diags, validateEffects(p)...)
+	diags = append(diags, validateTypeRefs(p)...)
 
 	eng, pdiags := policy.NewEngine(packs)
 	diags = append(diags, pdiags...)
@@ -145,6 +146,103 @@ func validateEffectList(path string, effects []string, allowed map[string]bool) 
 			Message:  "effect 'pure' cannot be combined with other effects",
 			Path:     path,
 		})
+	}
+	return diags
+}
+
+func validateTypeRefs(p *ir.Program) []ir.Diagnostic {
+	known := map[string]bool{
+		"String":  true,
+		"Bool":    true,
+		"bool":    true,
+		"Boolean": true,
+		"Int":     true,
+		"int":     true,
+		"Integer": true,
+		"Long":    true,
+		"long":    true,
+		"Float":   true,
+		"float":   true,
+		"Double":  true,
+		"double":  true,
+	}
+	for _, mod := range p.Modules {
+		for _, decl := range mod.Types {
+			known[strings.TrimSpace(decl.Name)] = true
+		}
+		for _, decl := range mod.Enums {
+			known[strings.TrimSpace(decl.Name)] = true
+		}
+	}
+
+	var diags []ir.Diagnostic
+	seen := map[string]bool{}
+	addDiag := func(path, raw string) {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			return
+		}
+		key := path + "::" + raw
+		if seen[key] {
+			return
+		}
+		seen[key] = true
+		diags = append(diags, ir.Diagnostic{
+			Severity: "error",
+			Message:  "unknown type reference: " + raw,
+			Path:     path,
+		})
+	}
+
+	var validate func(path, raw string)
+	validate = func(path, raw string) {
+		raw = strings.TrimSpace(raw)
+		if raw == "" {
+			return
+		}
+		for strings.HasPrefix(raw, "[]") {
+			raw = strings.TrimSpace(strings.TrimPrefix(raw, "[]"))
+		}
+		if raw == "" || known[raw] {
+			return
+		}
+		if strings.Contains(raw, "<") || strings.Contains(raw, ">") {
+			return
+		}
+		addDiag(path, raw)
+	}
+
+	for _, mod := range p.Modules {
+		path := mod.Name
+		for _, decl := range mod.Types {
+			validate(path, decl.Base)
+		}
+		for _, decl := range mod.Ports {
+			for _, method := range decl.Methods {
+				for _, field := range method.Params {
+					validate(path, field.Type)
+				}
+				for _, field := range method.Returns {
+					validate(path, field.Type)
+				}
+			}
+		}
+		for _, decl := range mod.Usecases {
+			for _, field := range decl.Inputs {
+				validate(path, field.Type)
+			}
+			for _, field := range decl.Outputs {
+				validate(path, field.Type)
+			}
+		}
+		for _, decl := range mod.Adapters {
+			for _, field := range decl.Inputs {
+				validate(path, field.Type)
+			}
+			for _, field := range decl.Outputs {
+				validate(path, field.Type)
+			}
+		}
 	}
 	return diags
 }

@@ -20,6 +20,7 @@ var lowerCmd = &cobra.Command{
 		input := args[0]
 		target, _ := cmd.Flags().GetString("target")
 		profileName, _ := cmd.Flags().GetString("profile")
+		strict, _ := cmd.Flags().GetBool("strict")
 		out, _ := cmd.Flags().GetString("out")
 		outDir, _ := cmd.Flags().GetString("out-dir")
 
@@ -41,7 +42,7 @@ var lowerCmd = &cobra.Command{
 					outDir = defaultJavaLowerDir(input)
 				}
 			}
-			project, err := java.LowerProjectWithOptions(prog, java.Options{Profile: profile})
+			project, err := java.LowerProjectWithOptions(prog, java.Options{Profile: profile, Strict: strict})
 			if err != nil {
 				return err
 			}
@@ -79,6 +80,7 @@ var lowerCmd = &cobra.Command{
 func init() {
 	lowerCmd.Flags().String("target", "java", "target language: java|python")
 	lowerCmd.Flags().String("profile", "plain", "java lowering profile: plain|spring-boot|quarkus")
+	lowerCmd.Flags().Bool("strict", false, "fail instead of generating placeholders or adapter stubs in java lowering")
 	lowerCmd.Flags().StringP("out", "o", "", "output file (python) or output directory (java)")
 	lowerCmd.Flags().String("out-dir", "", "output directory for multi-file targets")
 }

@@ -54,6 +54,7 @@ O argumento e:
 2. o ramo LIA ganha artefatos auditaveis (`project.lia`, tape, decision log)
 3. o lower consegue preservar a estrutura do LIA em perfis diferentes sem inventar arquitetura depois
 4. a comparacao destaca o que ficou faltando no branch sem LIA
+5. o ramo LIA da demo roda em modo estrito: se houver placeholder ou adapter stub, o lower falha
 
 No run validado neste repositório:
 
@@ -85,6 +86,18 @@ Em todos os casos, o mapeamento semantico e o mesmo:
 - `port` -> `interface`
 - `usecase` -> classe com dependencias explicitas
 - `wiring bind` -> composicao explicita do profile escolhido
+
+## Regra da demo atual
+
+Para a comparacao ser honesta, o ramo `LIA -> Java` nao aceita "salvamento" no lower:
+
+- tipo referenciado mas nao declarado -> erro ainda na fase LIA/check ou no lower estrito
+- adapter sem semantica suficiente -> erro no lower estrito
+- placeholder ou stub no Java final -> fora da prova
+
+Isso significa que a demo atual prova uma coisa mais forte:
+
+**o LIA gerado pela IA ficou bom o bastante para ser baixado deterministicamente para Java, sem nova ajuda da IA no meio do caminho**
 
 ## Limite atual
 

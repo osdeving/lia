@@ -80,3 +80,44 @@ func TestCheckProgram_GenModelIDRequired(t *testing.T) {
 		t.Fatalf("expected gen.model_id diagnostic")
 	}
 }
+
+func TestCheckProgram_UnknownTypeReference(t *testing.T) {
+	prog := &ir.Program{
+		Version: "0.1",
+		Modules: []ir.Module{
+			{
+				Name: "orders.port",
+				Ports: []ir.PortDecl{{
+					Name: "OrderRepository",
+					Methods: []ir.FuncDecl{{
+						Name: "Get",
+						Params: []ir.Field{
+							{Name: "id", Type: "OrderId"},
+						},
+						Returns: []ir.Field{
+							{Name: "order", Type: "Order"},
+						},
+					}},
+				}},
+			},
+			{
+				Name: "orders.domain",
+				Types: []ir.TypeDecl{
+					{Name: "OrderId", Base: "String"},
+				},
+			},
+		},
+	}
+
+	diags := CheckProgram(prog, nil)
+	found := false
+	for _, d := range diags {
+		if d.Severity == "error" && d.Message == "unknown type reference: Order" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected unknown type diagnostic")
+	}
+}

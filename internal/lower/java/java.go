@@ -110,13 +110,17 @@ func Lower(p *ir.Program) ([]byte, error) {
 	return bytes.TrimRight(buf.Bytes(), "\n"), nil
 }
 
-// lowerProjectWithProfile lowers a linked unit into a multi-file Java project.
-func lowerProjectWithProfile(p *ir.Program, profile Profile) (*Project, error) {
+// lowerProjectWithOptions lowers a linked unit into a multi-file Java project.
+func lowerProjectWithOptions(p *ir.Program, opts Options) (*Project, error) {
 	if p == nil {
 		return nil, fmt.Errorf("nil program")
 	}
+	profile := opts.normalizedProfile()
 
-	index := buildIndex(p)
+	index, err := buildIndex(p, opts.Strict)
+	if err != nil {
+		return nil, err
+	}
 	project := &Project{
 		Name:        index.ProjectName,
 		BasePackage: index.BasePackage,
@@ -194,9 +198,13 @@ func lowerProjectWithProfile(p *ir.Program, profile Profile) (*Project, error) {
 			})
 		}
 		for _, decl := range mod.Adapters {
+			content, err := renderAdapter(index, mod.Name, pkg, decl, opts.Strict)
+			if err != nil {
+				return nil, err
+			}
 			files = append(files, File{
 				Path:    javaFilePath(pkg, adapterClassName(decl.Name)),
-				Content: []byte(renderAdapter(index, mod.Name, pkg, decl)),
+				Content: []byte(content),
 			})
 		}
 		for _, decl := range mod.Wirings {
@@ -232,7 +240,7 @@ func WriteProject(dir string, project *Project) error {
 	return nil
 }
 
-func buildIndex(p *ir.Program) *javaIndex {
+func buildIndex(p *ir.Program, strict bool) (*javaIndex, error) {
 	name := "lia-generated"
 	if len(p.Projects) > 0 && strings.TrimSpace(p.Projects[0].Name) != "" {
 		name = strings.TrimSpace(p.Projects[0].Name)
@@ -324,6 +332,9 @@ func buildIndex(p *ir.Program) *javaIndex {
 				continue
 			}
 			seen[name] = true
+			if strict {
+				return nil, fmt.Errorf("strict java lower requires all referenced types to be declared before lowering: %s.%s", mod.Name, name)
+			}
 			idx.Placeholders[mod.Name] = append(idx.Placeholders[mod.Name], name)
 			idx.TypesByName[name] = append(idx.TypesByName[name], typeRef{
 				Module: mod.Name,
@@ -334,7 +345,7 @@ func buildIndex(p *ir.Program) *javaIndex {
 		sort.Strings(idx.Placeholders[mod.Name])
 	}
 
-	return idx
+	return idx, nil
 }
 
 func renderPom(projectName string) string {
@@ -645,7 +656,7 @@ func renderUsecase(index *javaIndex, moduleName, pkg string, uc usecaseDeps) str
 	return renderJavaFile(pkg, sortedImports(imports), joinLines(classBody))
 }
 
-func renderAdapter(index *javaIndex, moduleName, pkg string, decl ir.AdapterDecl) string {
+func renderAdapter(index *javaIndex, moduleName, pkg string, decl ir.AdapterDecl, strict bool) (string, error) {
 	className := adapterClassName(decl.Name)
 	imports := map[string]bool{}
 	interfaceName := ""
@@ -657,9 +668,20 @@ func renderAdapter(index *javaIndex, moduleName, pkg string, decl ir.AdapterDecl
 				if port.Package != pkg {
 					imports[port.Package+"."+interfaceName] = true
 				}
+				if strict && len(port.Decl.Methods) != 1 {
+					return "", fmt.Errorf("strict java lower only supports adapters for single-method ports: %s implements %s", decl.Name, decl.Implements)
+				}
 				for _, method := range port.Decl.Methods {
 					for _, imp := range adapterMethodImports(index, moduleName, pkg, method) {
 						imports[imp] = true
+					}
+					if strict {
+						rendered, err := renderStrictAdapterMethod(index, moduleName, method, interfaceName, decl.Body)
+						if err != nil {
+							return "", err
+						}
+						methods = append(methods, rendered)
+						continue
 					}
 					methods = append(methods, renderAdapterMethod(index, moduleName, method, interfaceName))
 				}
@@ -667,6 +689,9 @@ func renderAdapter(index *javaIndex, moduleName, pkg string, decl ir.AdapterDecl
 		}
 	}
 	if len(methods) == 0 {
+		if strict {
+			return "", fmt.Errorf("strict java lower cannot emit adapter stubs for %s", decl.Name)
+		}
 		methods = append(methods, "// Adapter body retained conservatively; semantic lowering of adapter behavior is still partial.")
 	}
 
@@ -683,7 +708,7 @@ func renderAdapter(index *javaIndex, moduleName, pkg string, decl ir.AdapterDecl
 			joinLines(methods),
 		}), "  "),
 		"}",
-	}))
+	})), nil
 }
 
 func renderAdapterMethod(index *javaIndex, moduleName string, method ir.FuncDecl, interfaceName string) string {
@@ -702,6 +727,134 @@ func renderAdapterMethod(index *javaIndex, moduleName string, method ir.FuncDecl
 	}
 	body = append(body, "}")
 	return joinLines(body)
+}
+
+func renderStrictAdapterMethod(index *javaIndex, moduleName string, method ir.FuncDecl, interfaceName string, body []ir.Stmt) (string, error) {
+	if len(method.Returns) > 1 {
+		return "", fmt.Errorf("strict java lower does not support multi-value adapter returns for method %s", method.Name)
+	}
+	if len(body) == 0 {
+		return "", fmt.Errorf("strict java lower requires a concrete adapter body for method %s", method.Name)
+	}
+
+	var params []string
+	for _, field := range method.Params {
+		jt := resolveType(index, moduleName, field.Type)
+		params = append(params, jt.Name+" "+sanitizeJavaIdentifier(field.Name))
+	}
+	returnType, _ := adapterMethodReturnType(index, moduleName, method, interfaceName)
+
+	lines := []string{
+		"@Override",
+		fmt.Sprintf("public %s %s(%s) {", returnType, toLowerCamel(method.Name), strings.Join(params, ", ")),
+	}
+	bodyLines, err := renderAdapterStatements(body, renderContext{
+		Index:             index,
+		CurrentModule:     moduleName,
+		DependencyMethods: map[string]methodOwner{},
+	}, method, interfaceName)
+	if err != nil {
+		return "", err
+	}
+	lines = append(lines, indent(joinLines(bodyLines), "  "))
+	lines = append(lines, "}")
+	return joinLines(lines), nil
+}
+
+func renderAdapterStatements(stmts []ir.Stmt, ctx renderContext, method ir.FuncDecl, interfaceName string) ([]string, error) {
+	var out []string
+	for _, stmt := range stmts {
+		lines, err := renderAdapterStatement(stmt, ctx, method, interfaceName)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, lines...)
+	}
+	return out, nil
+}
+
+func renderAdapterStatement(stmt ir.Stmt, ctx renderContext, method ir.FuncDecl, interfaceName string) ([]string, error) {
+	switch stmt.Kind {
+	case "let":
+		if stmt.Let == nil {
+			return []string{"// unsupported empty let"}, nil
+		}
+		return []string{fmt.Sprintf("var %s = %s;", sanitizeJavaIdentifier(stmt.Let.Name), renderExpr(stmt.Let.Value, ctx))}, nil
+	case "assign":
+		if stmt.Assign == nil {
+			return []string{"// unsupported empty assignment"}, nil
+		}
+		return []string{fmt.Sprintf("%s = %s;", sanitizeJavaIdentifier(stmt.Assign.Name), renderExpr(stmt.Assign.Value, ctx))}, nil
+	case "return":
+		if stmt.Return == nil || stmt.Return.Value == nil {
+			if len(method.Returns) == 0 {
+				return []string{"return;"}, nil
+			}
+			_, zero := adapterMethodReturnType(ctx.Index, ctx.CurrentModule, method, interfaceName)
+			return []string{"return " + zero + ";"}, nil
+		}
+		if len(method.Returns) == 0 {
+			return []string{"return;"}, nil
+		}
+		return []string{"return " + renderExpr(*stmt.Return.Value, ctx) + ";"}, nil
+	case "expr":
+		if stmt.ExprStmt == nil {
+			return []string{"// unsupported empty expression"}, nil
+		}
+		return []string{renderExpr(*stmt.ExprStmt, ctx) + ";"}, nil
+	case "if":
+		if stmt.If == nil {
+			return []string{"// unsupported empty if"}, nil
+		}
+		thenLines, err := renderAdapterStatements(stmt.If.Then, ctx, method, interfaceName)
+		if err != nil {
+			return nil, err
+		}
+		lines := []string{fmt.Sprintf("if (%s) {", renderExpr(stmt.If.Cond, ctx))}
+		lines = append(lines, indent(joinLines(thenLines), "  "))
+		if len(stmt.If.Else) > 0 {
+			elseLines, err := renderAdapterStatements(stmt.If.Else, ctx, method, interfaceName)
+			if err != nil {
+				return nil, err
+			}
+			lines = append(lines, "} else {")
+			lines = append(lines, indent(joinLines(elseLines), "  "))
+		}
+		lines = append(lines, "}")
+		return lines, nil
+	case "while":
+		if stmt.While == nil {
+			return []string{"// unsupported empty while"}, nil
+		}
+		bodyLines, err := renderAdapterStatements(stmt.While.Body, ctx, method, interfaceName)
+		if err != nil {
+			return nil, err
+		}
+		return []string{
+			fmt.Sprintf("while (%s) {", renderExpr(stmt.While.Cond, ctx)),
+			indent(joinLines(bodyLines), "  "),
+			"}",
+		}, nil
+	case "for":
+		if stmt.For == nil {
+			return []string{"// unsupported empty for"}, nil
+		}
+		bodyLines, err := renderAdapterStatements(stmt.For.Body, ctx, method, interfaceName)
+		if err != nil {
+			return nil, err
+		}
+		return []string{
+			fmt.Sprintf("for (var %s : %s) {", sanitizeJavaIdentifier(stmt.For.Var), renderExpr(stmt.For.Iter, ctx)),
+			indent(joinLines(bodyLines), "  "),
+			"}",
+		}, nil
+	case "break":
+		return []string{"break;"}, nil
+	case "continue":
+		return []string{"continue;"}, nil
+	default:
+		return nil, fmt.Errorf("strict java lower does not support adapter statement kind %s", stmt.Kind)
+	}
 }
 
 func adapterMethodImports(index *javaIndex, moduleName, pkg string, method ir.FuncDecl) []string {
