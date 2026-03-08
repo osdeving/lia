@@ -16,6 +16,7 @@
 ## Guias Práticos (`guide/`)
 
 - **[Começando](guide/GETTING_STARTED.md)**: Tutorial de 10 minutos
+- **[O Que Temos Hoje](guide/O_QUE_TEMOS_HOJE.md)**: Explicação não-técnica do estado atual
 - **[Estado da Linguagem](guide/LANGUAGE_STATUS.md)**: O que já funciona, keywords e lacunas
 - **[Demo IA](guide/AI_BOOTSTRAP_DEMO.md)**: Antes e depois de gerar via LIA
 - **[Demo Java vs LIA](guide/JAVA_COMPARISON_DEMO.md)**: Comparação repetível entre Java direto e LIA -> Java
