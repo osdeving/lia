@@ -1,0 +1,28 @@
+{
+  "name": "AIDemo",
+  "brief": "Bootstrapping an order service through LIA to keep generation modular, auditable, and deterministic.",
+  "repro": "pinned",
+  "packs": [
+    {
+      "name": "ArchBaseline",
+      "version": "0.1.0"
+    }
+  ],
+  "modules": [
+    {
+      "name": "orders.domain",
+      "role": "domain",
+      "context": "Define the core order vocabulary, including OrderId and Status."
+    },
+    {
+      "name": "orders.port",
+      "role": "port",
+      "context": "Expose an OrderRepository contract that persists orders using OrderId."
+    },
+    {
+      "name": "orders.app",
+      "role": "usecase",
+      "context": "Create the CreateOrder usecase, one adapter implementing OrderRepository, and one wiring block."
+    }
+  ]
+}

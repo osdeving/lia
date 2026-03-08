@@ -251,3 +251,34 @@ func TestBuildDepRoleMap_Nil(t *testing.T) {
 		t.Fatalf("expected empty dep map")
 	}
 }
+
+func TestLink_StrictProjectRejectsHoles(t *testing.T) {
+	input := &ir.Program{
+		Version: "0.1",
+		Projects: []ir.Project{
+			{Name: "demo", Repro: ir.ReproStrict, Tape: "./prompt-tape.json"},
+		},
+		Modules: []ir.Module{
+			{
+				Name:  "demo.core",
+				Role:  "domain",
+				Holes: []ir.HoleDecl{{Name: "MissingRepo", Contract: "need.repo"}},
+			},
+		},
+	}
+
+	_, _, diags, err := Link([]*ir.Program{input}, nil)
+	if err != nil {
+		t.Fatalf("Link failed: %v", err)
+	}
+	found := false
+	for _, d := range diags {
+		if d.Severity == "error" && d.Message == "unresolved hole is not allowed in repro=strict: MissingRepo" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("expected strict hole diagnostic")
+	}
+}

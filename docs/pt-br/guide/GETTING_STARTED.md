@@ -1,37 +1,42 @@
 # Getting Started (MVP)
 
-This is the minimal end-to-end run that proves the toolchain works.
+Este é o menor fluxo que hoje prova o toolchain sem depender de `lower`.
 
-## Prereqs
+## Pré-requisitos
 
-- Go 1.23+ (or current system Go)
+- Go 1.23+
 
-## Run the MVP
+## Rode o fluxo
 
 ```bash
 # 1) parse .lia -> .liao
-go run ./cmd/lia parse examples/order-service/project.lia -o /tmp/order.liao
+go run ./cmd/lia parse examples/full-pipeline/project.lia -o /tmp/full-pipeline.liao
 
-# 2) validate (use --pack-dir se quiser packs)
-go run ./cmd/lia check /tmp/order.liao --pack-dir ./docs/pt-br/spec/packs
+# 2) validate
+go run ./cmd/lia check /tmp/full-pipeline.liao --pack-dir ./docs/pt-br/spec/packs
 
 # 3) link .liao -> .lial + decision log
-go run ./cmd/lia link /tmp/order.liao -o /tmp/order.lial --pack-dir ./docs/pt-br/spec/packs
+go run ./cmd/lia link /tmp/full-pipeline.liao -o /tmp/full-pipeline.lial --decision-log /tmp/full-pipeline.decision-log.json --pack-dir ./docs/pt-br/spec/packs
 
-# 4) lower (stub) -> Java
-go run ./cmd/lia lower /tmp/order.lial --target java -o /tmp/order.java
+# 4) explain
+go run ./cmd/lia explain /tmp/full-pipeline.lial --decision-log /tmp/full-pipeline.decision-log.json
+
+# 5) replay
+go run ./cmd/lia replay /tmp/full-pipeline.lial --tape ./examples/full-pipeline/prompt-tape.json
 ```
 
-## What you should see
+## O que você deve ver
 
-- `check` prints warnings for policies not enforced (expected in v0.1) and then `ok`.
-- `link` emits `/tmp/order.lial` and `/tmp/order.lial.decision-log.json`.
-- `lower` emits a stub file with module count.
+- `check` termina com `ok`
+- `link` escreve `/tmp/full-pipeline.lial`
+- `explain` mostra hash e quantidade de entradas do decision log
+- `replay` mostra `modules 3, generated 3, validated 3`
 
-## Known limitations in MVP
+## Limitações atuais
 
-- Parser é minimalista (apenas project/module/use pack/repro/tape).
-- Linker is a stub (no real symbol resolution yet).
-- SecurityBaseline rules are not enforced (warnings only).
+- não existe typechecker completo
+- policy DSL ainda é parcial
+- `hole` ainda não é resolvido automaticamente
+- `lower` continua stub
 
-Se quiser o modelo conceitual completo, leia `docs/pt-br/guide/PIPELINE.md`.
+Para o quadro completo da linguagem suportada hoje, leia `docs/pt-br/guide/LANGUAGE_STATUS.md`.

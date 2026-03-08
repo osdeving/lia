@@ -29,8 +29,11 @@ Nao e objetivo (v0.1):
 Esta spec descreve a linguagem **pretendida**. O toolchain atual implementa um subconjunto crescente:
 
 - Parser suporta: `project`, `module`, `use pack`, `repro`, `tape`, mais o core da gramatica (types, enums, ports, usecases/adapters, wiring, constraints, preferencias, effects).
+- Implementacao do parser (v0.1): Participle (lexer stateful), conforme ADR 0001.
 - Derivacao de simbolos: `provides`/`requires` sao calculados a partir dos modulos.
 - Linker resolve `requires -> provides` de forma deterministica (regras v0.1).
+- `replay` valida `@gen.prompt_ref` e `@gen.prompt_hash` contra o prompt tape.
+- `repro=strict` rejeita holes nao resolvidos no `.lial`.
 - Lowerers ainda sao **stubs** (sem codegen real por enquanto).
 
 Veja o **roadmap de implementacao**: `docs/pt-br/ROADMAP.md` (e `docs/en/ROADMAP.md`).

@@ -2,7 +2,10 @@ module github.com/willams/lia
 
 go 1.23
 
-require github.com/spf13/cobra v1.10.2
+require (
+	github.com/alecthomas/participle/v2 v2.1.4
+	github.com/spf13/cobra v1.10.2
+)
 
 require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

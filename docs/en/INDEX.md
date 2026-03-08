@@ -6,12 +6,15 @@ This repository is a toolchain + spec for LIA. Use the layers below to navigate.
 
 - `OVERVIEW.md` — what LIA is, why it exists, and what it is not
 - `guide/GETTING_STARTED.md` — 10-minute MVP run
+- `guide/LANGUAGE_STATUS.md` — what works today, supported keywords, and gaps
+- `guide/AI_BOOTSTRAP_DEMO.md` — before/after demo for AI-driven bootstrap
 
 ## 1. System overview
 
 - `guide/PIPELINE.md` — end-to-end pipeline and artifacts
 - `guide/CLI.md` — commands and examples
 - `guide/REPRO.md` — reproducibility model (@gen + prompt tape)
+- `guide/LANGUAGE_STATUS.md` — quick status of the implemented language
 - `guide/WHAT_WE_HAVE.md` — quick checklist of what exists
 
 ## 2. Core concepts

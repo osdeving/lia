@@ -27,6 +27,7 @@ A project can store all prompts in a versioned JSON tape:
 
 ## Current status (v0.1)
 
-- prompt tape exists as JSON schema (see `examples/order-service/prompt-tape.json`)
-- validation enforces `prompt_hash` when `prompt_ref` is present
-- replay mode is a stub
+- prompt tape exists as canonical JSON (see `examples/full-pipeline/prompt-tape.json`)
+- `check` requires `prompt_hash` and `model_id` when `prompt_ref` is present
+- `replay` validates `prompt_ref` and `prompt_hash` against the tape
+- `internal/llmgen` writes prompt tape in the canonical project format

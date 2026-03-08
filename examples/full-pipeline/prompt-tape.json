@@ -1,0 +1,47 @@
+{
+  "version": "0.1",
+  "prompts": [
+    {
+      "ref": "p-001",
+      "body": "Generate the demo.domain module for the full pipeline showcase.",
+      "hash": "3ebca3dea9b2c6cbb5407950771ddc3076cff11e78718e37ed939b74bdabc80c",
+      "context_refs": [
+        "spec:lia-v0.1"
+      ],
+      "params": [
+        {
+          "key": "temperature",
+          "value": "0.1"
+        }
+      ]
+    },
+    {
+      "ref": "p-002",
+      "body": "Generate the demo.port module for the full pipeline showcase.",
+      "hash": "4eec6751cb2a07ec586243b41b95b010899e4218e7e344e58d7e62a39cf76b41",
+      "context_refs": [
+        "spec:lia-v0.1"
+      ],
+      "params": [
+        {
+          "key": "temperature",
+          "value": "0.1"
+        }
+      ]
+    },
+    {
+      "ref": "p-003",
+      "body": "Generate the demo.app module for the full pipeline showcase.",
+      "hash": "a1ae145a95c463b4f9bb67f29e14a8fa01492756aed0f86f72181d395862b23f",
+      "context_refs": [
+        "spec:lia-v0.1"
+      ],
+      "params": [
+        {
+          "key": "temperature",
+          "value": "0.1"
+        }
+      ]
+    }
+  ]
+}

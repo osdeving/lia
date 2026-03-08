@@ -2,8 +2,11 @@ package llmgen
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/willams/lia/internal/repro"
 )
 
 // MockProvider is a mock LLM provider for testing.
@@ -30,7 +33,7 @@ func (m *MockProvider) Generate(ctx context.Context, req GenerateRequest) (*Gene
 // TestGenerator_GenerateLIAModule tests basic module generation.
 func TestGenerator_GenerateLIAModule(t *testing.T) {
 	mock := &MockProvider{
-		Response: "module test.module as domain {}",
+		Response: "```lia\nmodule test.module as domain {\n  type Name = String;\n}\n```",
 	}
 
 	gen := NewGenerator(mock, "")
@@ -55,6 +58,12 @@ func TestGenerator_GenerateLIAModule(t *testing.T) {
 	if module.Role != "domain" {
 		t.Errorf("expected role domain, got %s", module.Role)
 	}
+	if len(module.Types) != 1 || module.Types[0].Name != "Name" {
+		t.Fatalf("expected parsed type declaration")
+	}
+	if module.Gen == nil || module.Gen.PromptRef == "" {
+		t.Fatalf("expected module @gen metadata")
+	}
 
 	if meta == nil {
 		t.Fatal("expected non-nil metadata")
@@ -70,6 +79,58 @@ func TestGenerator_GenerateLIAModule(t *testing.T) {
 
 	if meta.ModelID != "test-model" {
 		t.Errorf("expected model_id test-model, got %s", meta.ModelID)
+	}
+}
+
+func TestGenerator_GenerateLIAModule_WritesCanonicalTape(t *testing.T) {
+	mock := &MockProvider{
+		Response: "module test.module as domain { }",
+	}
+	tapePath := filepath.Join(t.TempDir(), "prompt-tape.json")
+	gen := NewGenerator(mock, tapePath)
+
+	_, meta, err := gen.GenerateLIAModule(context.Background(), ModuleSpec{
+		Name:        "test.module",
+		Role:        "domain",
+		Model:       "test-model",
+		Temperature: 0.1,
+		Context:     "spec:lia-v0.1",
+	})
+	if err != nil {
+		t.Fatalf("GenerateLIAModule failed: %v", err)
+	}
+
+	tape, err := repro.LoadTape(tapePath)
+	if err != nil {
+		t.Fatalf("LoadTape failed: %v", err)
+	}
+	if tape.Version != "0.1" {
+		t.Fatalf("expected tape version 0.1, got %s", tape.Version)
+	}
+	if len(tape.Prompts) != 1 {
+		t.Fatalf("expected 1 prompt entry, got %d", len(tape.Prompts))
+	}
+	if tape.Prompts[0].Ref != meta.PromptRef {
+		t.Fatalf("expected prompt ref %s, got %s", meta.PromptRef, tape.Prompts[0].Ref)
+	}
+	if tape.Prompts[0].Hash != meta.PromptHash {
+		t.Fatalf("expected prompt hash %s, got %s", meta.PromptHash, tape.Prompts[0].Hash)
+	}
+}
+
+func TestGenerator_GenerateLIAModule_MismatchFails(t *testing.T) {
+	mock := &MockProvider{
+		Response: "module other.module as domain { }",
+	}
+	gen := NewGenerator(mock, "")
+
+	_, _, err := gen.GenerateLIAModule(context.Background(), ModuleSpec{
+		Name:  "test.module",
+		Role:  "domain",
+		Model: "test-model",
+	})
+	if err == nil {
+		t.Fatalf("expected mismatch error")
 	}
 }
 

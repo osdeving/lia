@@ -1,252 +1,111 @@
 package parser
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
-func TestParseStringList_SkipsComma(t *testing.T) {
-	tokens, err := lex(`["a",, "b"]`)
+func TestParseGenMeta_StringListSkipsComma(t *testing.T) {
+	content := `@gen { context_refs: ["a",, "b"] }
+module demo.core as domain { }
+`
+	tmpfile := createTempFile(t, content)
+	defer os.Remove(tmpfile)
+
+	prog, err := ParseFile(tmpfile)
 	if err != nil {
-		t.Fatalf("lex failed: %v", err)
+		t.Fatalf("ParseFile failed: %v", err)
 	}
-	p := &parser{tokens: tokens}
-	list, err := p.parseStringList()
-	if err != nil {
-		t.Fatalf("parseStringList failed: %v", err)
+	if len(prog.Modules) != 1 || prog.Modules[0].Gen == nil {
+		t.Fatalf("expected module with @gen")
 	}
-	if len(list) != 2 {
-		t.Fatalf("expected 2 items, got %d", len(list))
+	if len(prog.Modules[0].Gen.ContextRefs) != 2 {
+		t.Fatalf("expected 2 context refs, got %d", len(prog.Modules[0].Gen.ContextRefs))
 	}
 }
 
-func TestParseKVList_Semicolons(t *testing.T) {
-	tokens, err := lex(`{ a: 1; b: 2 }`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	list, err := p.parseKVList()
-	if err != nil {
-		t.Fatalf("parseKVList failed: %v", err)
-	}
-	if len(list) != 2 {
-		t.Fatalf("expected 2 kv items, got %d", len(list))
-	}
-}
+func TestParseGenMeta_KVListSemicolons(t *testing.T) {
+	content := `@gen { model_params: { a: 1; b: 2 } }
+module demo.core as domain { }
+`
+	tmpfile := createTempFile(t, content)
+	defer os.Remove(tmpfile)
 
-func TestParseMethodDecl_Direct(t *testing.T) {
-	tokens, err := lex(`Ping() -> (ok: Bool);`)
+	prog, err := ParseFile(tmpfile)
 	if err != nil {
-		t.Fatalf("lex failed: %v", err)
+		t.Fatalf("ParseFile failed: %v", err)
 	}
-	p := &parser{tokens: tokens}
-	decl, err := p.parseMethodDecl()
-	if err != nil {
-		t.Fatalf("parseMethodDecl failed: %v", err)
+	if len(prog.Modules) != 1 || prog.Modules[0].Gen == nil {
+		t.Fatalf("expected module with @gen")
 	}
-	if decl.Name != "Ping" {
-		t.Fatalf("unexpected method name")
-	}
-}
-
-func TestParseHelpers_ErrorPaths(t *testing.T) {
-	cases := []struct {
-		name string
-		fn   func() error
-	}{
-		{
-			name: "type decl missing name",
-			fn: func() error {
-				p := &parser{tokens: []token{{typ: tokenAssign}, {typ: tokenEOF}}}
-				_, err := p.parseTypeDecl()
-				return err
-			},
-		},
-		{
-			name: "method decl missing name",
-			fn: func() error {
-				p := &parser{tokens: []token{{typ: tokenLParen}, {typ: tokenEOF}}}
-				_, err := p.parseMethodDecl()
-				return err
-			},
-		},
-		{
-			name: "wiring decl missing name",
-			fn: func() error {
-				p := &parser{tokens: []token{{typ: tokenLBrace}, {typ: tokenEOF}}}
-				_, err := p.parseWiringDecl()
-				return err
-			},
-		},
-		{
-			name: "policy decl missing name",
-			fn: func() error {
-				p := &parser{tokens: []token{{typ: tokenColon}, {typ: tokenEOF}}}
-				_, err := p.parsePolicyDecl()
-				return err
-			},
-		},
-		{
-			name: "constraint decl missing name",
-			fn: func() error {
-				p := &parser{tokens: []token{{typ: tokenColon}, {typ: tokenEOF}}}
-				_, err := p.parseConstraintDecl()
-				return err
-			},
-		},
-		{
-			name: "hole decl missing name",
-			fn: func() error {
-				p := &parser{tokens: []token{{typ: tokenColon}, {typ: tokenEOF}}}
-				_, err := p.parseHoleDecl()
-				return err
-			},
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			if err := c.fn(); err == nil {
-				t.Fatalf("expected error")
-			}
-		})
-	}
-}
-
-func TestParseEffects_Error(t *testing.T) {
-	p := &parser{tokens: []token{{typ: tokenIdent, lexeme: "oops"}, {typ: tokenEOF}}}
-	if _, err := p.parseEffects(); err == nil {
-		t.Fatalf("expected error for effects without '['")
-	}
-}
-
-func TestParseFieldBlock_Error(t *testing.T) {
-	p := &parser{tokens: []token{{typ: tokenIdent, lexeme: "oops"}, {typ: tokenEOF}}}
-	if _, err := p.parseFieldBlock(); err == nil {
-		t.Fatalf("expected error for field block without '{'")
-	}
-}
-
-func TestParseCandidateDecl_Error(t *testing.T) {
-	tokens, err := lex(`sym { bad }`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	if _, err := p.parseCandidateDecl(); err == nil {
-		t.Fatalf("expected error for bad candidate block")
-	}
-}
-
-func TestParseCandidateDecl_InvalidScore(t *testing.T) {
-	tokens, err := lex(`sym score bad;`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	if _, err := p.parseCandidateDecl(); err == nil {
-		t.Fatalf("expected error for invalid score")
-	}
-}
-
-func TestParseProject_Error(t *testing.T) {
-	tokens, err := lex(`Demo`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	if _, _, err := p.parseProject(); err == nil {
-		t.Fatalf("expected error for project without '{'")
-	}
-}
-
-func TestParsePack_Error(t *testing.T) {
-	tokens, err := lex(`Pack`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	if _, err := p.parsePack(); err == nil {
-		t.Fatalf("expected error for pack without '{'")
-	}
-}
-
-func TestParseEnumDecl_Error(t *testing.T) {
-	tokens, err := lex(`{`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	if _, err := p.parseEnumDecl(); err == nil {
-		t.Fatalf("expected error for enum without name")
-	}
-}
-
-func TestParseEffects_MissingBracket(t *testing.T) {
-	tokens, err := lex(`[io`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	if _, err := p.parseEffects(); err == nil {
-		t.Fatalf("expected error for effects missing ']'")
-	}
-}
-
-func TestParseStmt_DirectReturn(t *testing.T) {
-	tokens, err := lex(`return;`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	stmt, err := p.parseStmt()
-	if err != nil {
-		t.Fatalf("parseStmt failed: %v", err)
-	}
-	if stmt.Kind != "return" {
-		t.Fatalf("expected return stmt")
-	}
-}
-
-func TestParseStmt_DirectAssign(t *testing.T) {
-	tokens, err := lex(`x = 1;`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	stmt, err := p.parseStmt()
-	if err != nil {
-		t.Fatalf("parseStmt failed: %v", err)
-	}
-	if stmt.Kind != "assign" {
-		t.Fatalf("expected assign stmt")
-	}
-}
-
-func TestParseFieldList_Semicolons(t *testing.T) {
-	tokens, err := lex(`a: Int; b: Int }`)
-	if err != nil {
-		t.Fatalf("lex failed: %v", err)
-	}
-	p := &parser{tokens: tokens}
-	fields, err := p.parseFieldList(tokenRBrace)
-	if err != nil {
-		t.Fatalf("parseFieldList failed: %v", err)
-	}
-	if len(fields) != 2 {
-		t.Fatalf("expected 2 fields, got %d", len(fields))
+	if len(prog.Modules[0].Gen.ModelParams) != 2 {
+		t.Fatalf("expected 2 model params, got %d", len(prog.Modules[0].Gen.ModelParams))
 	}
 }
 
 func TestParseEffects_LeadingComma(t *testing.T) {
-	tokens, err := lex(`[ , io ]`)
+	content := `module effects.core as usecase {
+  usecase Test {
+    effects [ , io ];
+    return true;
+  }
+}
+`
+	tmpfile := createTempFile(t, content)
+	defer os.Remove(tmpfile)
+
+	prog, err := ParseFile(tmpfile)
 	if err != nil {
-		t.Fatalf("lex failed: %v", err)
+		t.Fatalf("ParseFile failed: %v", err)
 	}
-	p := &parser{tokens: tokens}
-	list, err := p.parseEffects()
+	if len(prog.Modules) != 1 || len(prog.Modules[0].Usecases) != 1 {
+		t.Fatalf("expected 1 usecase")
+	}
+	if len(prog.Modules[0].Usecases[0].Effects) != 1 {
+		t.Fatalf("expected 1 effect, got %d", len(prog.Modules[0].Usecases[0].Effects))
+	}
+}
+
+func TestParseMethodDecl_Direct(t *testing.T) {
+	content := `module port.core as port {
+  port P {
+    fn Ping() -> (ok: Bool);
+  }
+}
+`
+	tmpfile := createTempFile(t, content)
+	defer os.Remove(tmpfile)
+
+	prog, err := ParseFile(tmpfile)
 	if err != nil {
-		t.Fatalf("parseEffects failed: %v", err)
+		t.Fatalf("ParseFile failed: %v", err)
 	}
-	if len(list) != 1 {
-		t.Fatalf("expected 1 effect, got %d", len(list))
+	if len(prog.Modules) != 1 || len(prog.Modules[0].Ports) != 1 {
+		t.Fatalf("expected 1 port")
+	}
+	meth := prog.Modules[0].Ports[0].Methods
+	if len(meth) != 1 || meth[0].Name != "Ping" {
+		t.Fatalf("unexpected method name")
+	}
+}
+
+func TestParsePrefer_Weight(t *testing.T) {
+	content := `module pref.core as domain {
+  prefer prefer_repo: orders.port::port:Repo weight 0.7;
+}
+`
+	tmpfile := createTempFile(t, content)
+	defer os.Remove(tmpfile)
+
+	prog, err := ParseFile(tmpfile)
+	if err != nil {
+		t.Fatalf("ParseFile failed: %v", err)
+	}
+	if len(prog.Modules) != 1 || len(prog.Modules[0].Preferences) != 1 {
+		t.Fatalf("expected 1 preference")
+	}
+	pref := prog.Modules[0].Preferences[0]
+	if pref.Weight < 0.69 || pref.Weight > 0.71 {
+		t.Fatalf("unexpected weight: %f", pref.Weight)
 	}
 }

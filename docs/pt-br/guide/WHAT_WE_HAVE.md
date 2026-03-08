@@ -4,22 +4,22 @@ This document is a plain checklist for contributors.
 
 ## We have (working now)
 
-- CLI entrypoint and commands
-- minimal parser for project/module/use pack/repro/tape
-- canonical JSON encoder + hash
-- pack loader (pseudo-LIA packs)
-- minimal policy enforcement
-- decision log output
-- example project and prompt tape
+- parser for the supported v0.1 grammar
+- canonical `.liao` / `.lial` JSON + hash
+- symbol derivation (`provides` / `requires`)
+- deterministic linker + decision log
+- prompt tape validation through `lia replay`
+- canonical prompt tape writing in `internal/llmgen`
+- smoke-test fixture under `examples/full-pipeline/`
 
 ## We don't have (yet)
 
-- full parser (types, enums, ports, usecases, adapters, wiring, full grammar)
-- real symbol resolution and merge in linker
-- capabilities / taint
-- real lowerers (multi-file codegen, target-specific runtimes)
-- plugin system
+- full semantic typechecker
+- full policy DSL enforcement
+- automatic hole resolution / synthesis
+- real lowerers
+- plugin runtime
 
 ## How to prove it works
 
-Run `docs/pt-br/guide/GETTING_STARTED.md`.
+Run `docs/pt-br/guide/GETTING_STARTED.md` and `go test ./...`.

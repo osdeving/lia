@@ -1,0 +1,81 @@
+project FullPipeline {
+  repro pinned;
+  tape prompt_tape "./prompt-tape.json";
+
+  use pack ArchBaseline@0.1.0;
+
+  policy project_roles: allow_roles ["domain", "usecase", "port", "adapter", "wiring", "policy"];
+  constraint project_domain_guard: forbid(effect io) when role == "domain";
+
+  @gen {
+    prompt_ref: "p-001",
+    prompt_hash: "3ebca3dea9b2c6cbb5407950771ddc3076cff11e78718e37ed939b74bdabc80c",
+    model_id: "mock-llm",
+    context_refs: ["spec:lia-v0.1"],
+    model_params: { temperature: 0.1 }
+  }
+  module demo.domain as domain {
+    type OrderId = String where nonEmpty;
+    enum Status { NEW, PAID, FAILED };
+
+    usecase ValidateOrder {
+      input { id: OrderId };
+      output { ok: Bool };
+      effects [pure];
+      let ids = [1, 2, 3];
+      let first = ids[0];
+      let ready = first >= 1 && first != 2;
+      if ready { return true; } else { return false; }
+    }
+  }
+
+  @gen {
+    prompt_ref: "p-002",
+    prompt_hash: "4eec6751cb2a07ec586243b41b95b010899e4218e7e344e58d7e62a39cf76b41",
+    model_id: "mock-llm",
+    context_refs: ["spec:lia-v0.1"],
+    model_params: { temperature: 0.1 }
+  }
+  module demo.port as port {
+    port OrderRepository {
+      fn Save(id: OrderId) -> (ok: Bool);
+      method Ping() -> (ok: Bool);
+    }
+
+    candidate demo.port::port:OrderRepository score 0.8;
+  }
+
+  @gen {
+    prompt_ref: "p-003",
+    prompt_hash: "a1ae145a95c463b4f9bb67f29e14a8fa01492756aed0f86f72181d395862b23f",
+    model_id: "mock-llm",
+    context_refs: ["spec:lia-v0.1"],
+    model_params: { temperature: 0.1 }
+  }
+  module demo.app as usecase {
+    usecase CreateOrder {
+      input { id: String };
+      output { ok: Bool };
+      effects [io, tx];
+      let total = 0;
+      while total < 2 { total = total + 1; }
+      for item in [1, 2, 3] { total = total + item; }
+      return total > 0;
+    }
+
+    adapter OrdersDb implements demo.port::port:OrderRepository {
+      input { id: String };
+      output { ok: Bool };
+      effects [io];
+      Save(id);
+      return true;
+    }
+
+    wiring DemoWiring {
+      bind demo.port::port:OrderRepository -> demo.app::adapter:OrdersDb;
+    }
+
+    prefer repo_bias: demo.port::port:OrderRepository weight 0.6;
+    hole MissingAudit: need.audit.adapter;
+  }
+}

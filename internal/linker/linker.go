@@ -92,6 +92,7 @@ func Link(inputs []*ir.Program, packs []ir.Pack) (*ir.Program, *DecisionLog, []i
 	eng, pdiags := policy.NewEngine(packs)
 	diags = append(diags, pdiags...)
 	diags = append(diags, eng.ApplyGlobal(out, depRoles)...)
+	diags = append(diags, validateLinkedProgram(out)...)
 	return out, log, diags, nil
 }
 
@@ -237,4 +238,33 @@ func matchesSymbol(candidate, required, moduleName string) bool {
 		return moduleName+"::"+candidate == required
 	}
 	return strings.HasSuffix(required, ":"+candidate)
+}
+
+func validateLinkedProgram(p *ir.Program) []ir.Diagnostic {
+	if p == nil {
+		return nil
+	}
+
+	strict := false
+	for _, proj := range p.Projects {
+		if proj.Repro == ir.ReproStrict {
+			strict = true
+			break
+		}
+	}
+	if !strict {
+		return nil
+	}
+
+	var diags []ir.Diagnostic
+	for _, mod := range p.Modules {
+		for _, hole := range mod.Holes {
+			diags = append(diags, ir.Diagnostic{
+				Severity: "error",
+				Message:  "unresolved hole is not allowed in repro=strict: " + hole.Name,
+				Path:     mod.Name,
+			})
+		}
+	}
+	return diags
 }

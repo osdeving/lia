@@ -16,6 +16,8 @@
 ## Guias Práticos (`guide/`)
 
 - **[Começando](guide/GETTING_STARTED.md)**: Tutorial de 10 minutos
+- **[Estado da Linguagem](guide/LANGUAGE_STATUS.md)**: O que já funciona, keywords e lacunas
+- **[Demo IA](guide/AI_BOOTSTRAP_DEMO.md)**: Antes e depois de gerar via LIA
 - **[Pipeline](guide/PIPELINE.md)**: Fluxo completo .lia → .lial
 - **[CLI](guide/CLI.md)**: Referência de comandos
 - **[Reprodutibilidade](guide/REPRO.md)**: Como usar prompt-tapes

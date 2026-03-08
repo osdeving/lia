@@ -2,12 +2,16 @@ package llmgen
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/willams/lia/internal/ir"
+	"github.com/willams/lia/internal/parser"
+	"github.com/willams/lia/internal/repro"
 )
 
 // Generator orchestrates LLM-based code generation for LIA.
@@ -26,7 +30,20 @@ func NewGenerator(provider Provider, tapeFile string) *Generator {
 
 // GenerateLIAModule generates a LIA module using the LLM.
 func (g *Generator) GenerateLIAModule(ctx context.Context, spec ModuleSpec) (*ir.Module, *GenMetadata, error) {
+	asset, err := g.GenerateLIAModuleAsset(ctx, spec)
+	if err != nil {
+		return nil, nil, err
+	}
+	return asset.Module, asset.Meta, nil
+}
+
+// GenerateLIAModuleAsset generates a source module plus parsed metadata.
+func (g *Generator) GenerateLIAModuleAsset(ctx context.Context, spec ModuleSpec) (*GeneratedModule, error) {
 	prompt := g.buildPrompt(spec)
+	promptRef, err := g.recordPrompt(prompt, spec)
+	if err != nil {
+		return nil, fmt.Errorf("record prompt: %w", err)
+	}
 
 	req := GenerateRequest{
 		Prompt:      prompt,
@@ -40,27 +57,34 @@ func (g *Generator) GenerateLIAModule(ctx context.Context, spec ModuleSpec) (*ir
 
 	resp, err := g.Provider.Generate(ctx, req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("llm generation failed: %w", err)
+		return nil, fmt.Errorf("llm generation failed: %w", err)
 	}
 
-	// Parse LLM output into a Module
-	module := &ir.Module{
-		Name: spec.Name,
-		Role: spec.Role,
+	providerModel := resp.Model
+	if providerModel == "" {
+		providerModel = spec.Model
 	}
-
-	// Record generation metadata
 	meta := &GenMetadata{
-		PromptRef:  g.recordPrompt(prompt),
-		PromptHash: hashString(prompt),
-		ModelID:    resp.Model,
+		PromptRef:  promptRef,
+		PromptHash: repro.ComputePromptHash(prompt),
+		ModelID:    providerModel,
 		ModelParams: map[string]interface{}{
 			"temperature": spec.Temperature,
 		},
 		Timestamp: resp.Timestamp,
 	}
 
-	return module, meta, nil
+	module, err := g.parseModuleResponse(spec, resp.Content)
+	if err != nil {
+		return nil, err
+	}
+	module.Gen = buildIRGenMeta(meta, spec)
+
+	return &GeneratedModule{
+		Source: normalizedModuleSource(resp.Content),
+		Module: module,
+		Meta:   meta,
+	}, nil
 }
 
 // ModuleSpec defines the specification for a module to generate.
@@ -96,42 +120,147 @@ Generate only the module definition in LIA syntax. Follow these constraints:
 Output only valid LIA code.`, spec.Name, spec.Role, spec.Context)
 }
 
-func (g *Generator) recordPrompt(prompt string) string {
-	// Generate a unique ref for this prompt
-	ref := fmt.Sprintf("p-%d", time.Now().Unix())
+func (g *Generator) recordPrompt(prompt string, spec ModuleSpec) (string, error) {
+	if g.TapeFile == "" {
+		return fmt.Sprintf("p-%d", time.Now().UTC().UnixNano()), nil
+	}
+	return g.appendToTape(prompt, spec)
+}
 
-	// Append to tape file if configured
+func (g *Generator) appendToTape(prompt string, spec ModuleSpec) (string, error) {
+	tape := &repro.PromptTape{Version: "0.1"}
 	if g.TapeFile != "" {
-		_ = g.appendToTape(ref, prompt) // Error logged but not fatal for generation
+		loaded, err := repro.LoadTape(g.TapeFile)
+		switch {
+		case err == nil:
+			tape = loaded
+		case !errors.Is(err, os.ErrNotExist):
+			return "", err
+		}
 	}
 
-	return ref
+	hash := repro.ComputePromptHash(prompt)
+	for _, entry := range tape.Prompts {
+		if entry.Hash == hash && entry.Body == prompt {
+			return entry.Ref, nil
+		}
+	}
+
+	ref := nextPromptRef(tape)
+	entry := repro.PromptEntry{
+		Ref:  ref,
+		Body: prompt,
+		Hash: hash,
+	}
+	if spec.Context != "" {
+		entry.ContextRefs = []string{spec.Context}
+	}
+	if spec.Temperature != 0 {
+		entry.Params = append(entry.Params, ir.KV{
+			Key:   "temperature",
+			Value: strconv.FormatFloat(spec.Temperature, 'f', -1, 64),
+		})
+	}
+	if err := repro.SaveTape(g.TapeFile, tapeWithEntry(tape, entry)); err != nil {
+		return "", err
+	}
+	return ref, nil
 }
 
-func (g *Generator) appendToTape(ref, prompt string) error {
-	var tape map[string]string
-
-	// Read existing tape
-	if data, err := os.ReadFile(g.TapeFile); err == nil {
-		_ = json.Unmarshal(data, &tape)
-	}
-
-	if tape == nil {
-		tape = make(map[string]string)
-	}
-
-	tape[ref] = prompt
-
-	// Write back
-	data, err := json.MarshalIndent(tape, "", "  ")
+func (g *Generator) parseModuleResponse(spec ModuleSpec, content string) (*ir.Module, error) {
+	source := stripCodeFence(content)
+	prog, err := parser.ParseString(source)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("parse generated LIA: %w", err)
+	}
+	if len(prog.Modules) != 1 {
+		return nil, fmt.Errorf("expected exactly 1 generated module, got %d", len(prog.Modules))
 	}
 
-	return os.WriteFile(g.TapeFile, data, 0o644)
+	mod := prog.Modules[0]
+	if spec.Name != "" && mod.Name != spec.Name {
+		return nil, fmt.Errorf("generated module name mismatch: got %s want %s", mod.Name, spec.Name)
+	}
+	if spec.Role != "" && mod.Role != spec.Role {
+		return nil, fmt.Errorf("generated module role mismatch: got %s want %s", mod.Role, spec.Role)
+	}
+	return &mod, nil
 }
 
-func hashString(s string) string {
-	// Simple implementation - use proper hashing in production
-	return fmt.Sprintf("%x", len(s))
+func stripCodeFence(content string) string {
+	trim := strings.TrimSpace(content)
+	if !strings.HasPrefix(trim, "```") {
+		return trim
+	}
+	lines := strings.Split(trim, "\n")
+	if len(lines) < 3 {
+		return trim
+	}
+	if strings.HasPrefix(lines[0], "```") && strings.HasPrefix(lines[len(lines)-1], "```") {
+		return strings.TrimSpace(strings.Join(lines[1:len(lines)-1], "\n"))
+	}
+	return trim
+}
+
+func normalizedModuleSource(content string) string {
+	source := stripCodeFence(content)
+	trim := strings.TrimSpace(source)
+	if strings.HasPrefix(trim, "@gen") {
+		if idx := strings.Index(trim, "module "); idx >= 0 {
+			return strings.TrimSpace(trim[idx:])
+		}
+	}
+	return trim
+}
+
+func buildIRGenMeta(meta *GenMetadata, spec ModuleSpec) *ir.GenMeta {
+	if meta == nil {
+		return nil
+	}
+	out := &ir.GenMeta{
+		PromptRef:  meta.PromptRef,
+		PromptHash: meta.PromptHash,
+		ModelID:    meta.ModelID,
+	}
+	if !meta.Timestamp.IsZero() {
+		out.Timestamp = meta.Timestamp.UTC().Format(time.RFC3339Nano)
+	}
+	if spec.Context != "" {
+		out.ContextRefs = []string{spec.Context}
+	}
+	if spec.Temperature != 0 {
+		out.ModelParams = append(out.ModelParams, ir.KV{
+			Key:   "temperature",
+			Value: strconv.FormatFloat(spec.Temperature, 'f', -1, 64),
+		})
+	}
+	return out
+}
+
+func tapeWithEntry(tape *repro.PromptTape, entry repro.PromptEntry) *repro.PromptTape {
+	if tape == nil {
+		tape = &repro.PromptTape{Version: "0.1"}
+	}
+	if tape.Version == "" {
+		tape.Version = "0.1"
+	}
+	tape.Prompts = append(tape.Prompts, entry)
+	return tape
+}
+
+func nextPromptRef(tape *repro.PromptTape) string {
+	maxID := 0
+	for _, entry := range tape.Prompts {
+		if !strings.HasPrefix(entry.Ref, "p-") {
+			continue
+		}
+		n, err := strconv.Atoi(strings.TrimPrefix(entry.Ref, "p-"))
+		if err != nil {
+			continue
+		}
+		if n > maxID {
+			maxID = n
+		}
+	}
+	return fmt.Sprintf("p-%03d", maxID+1)
 }

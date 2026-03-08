@@ -1,37 +1,42 @@
 # Getting Started (MVP)
 
-This is the minimal end-to-end run that proves the toolchain works.
+This is the smallest flow that currently proves the toolchain without depending on `lower`.
 
 ## Prereqs
 
-- Go 1.23+ (or current system Go)
+- Go 1.23+
 
-## Run the MVP
+## Run the flow
 
 ```bash
 # 1) parse .lia -> .liao
-go run ./cmd/lia parse examples/order-service/project.lia -o /tmp/order.liao
+go run ./cmd/lia parse examples/full-pipeline/project.lia -o /tmp/full-pipeline.liao
 
-# 2) validate (use --pack-dir if you want packs)
-go run ./cmd/lia check /tmp/order.liao --pack-dir ./docs/en/spec/packs
+# 2) validate
+go run ./cmd/lia check /tmp/full-pipeline.liao --pack-dir ./docs/en/spec/packs
 
 # 3) link .liao -> .lial + decision log
-go run ./cmd/lia link /tmp/order.liao -o /tmp/order.lial --pack-dir ./docs/en/spec/packs
+go run ./cmd/lia link /tmp/full-pipeline.liao -o /tmp/full-pipeline.lial --decision-log /tmp/full-pipeline.decision-log.json --pack-dir ./docs/en/spec/packs
 
-# 4) lower (stub) -> Java
-go run ./cmd/lia lower /tmp/order.lial --target java -o /tmp/order.java
+# 4) explain
+go run ./cmd/lia explain /tmp/full-pipeline.lial --decision-log /tmp/full-pipeline.decision-log.json
+
+# 5) replay
+go run ./cmd/lia replay /tmp/full-pipeline.lial --tape ./examples/full-pipeline/prompt-tape.json
 ```
 
 ## What you should see
 
-- `check` prints warnings for policies not enforced (expected in v0.1) and then `ok`.
-- `link` emits `/tmp/order.lial` and `/tmp/order.lial.decision-log.json`.
-- `lower` emits a stub file with module count.
+- `check` ends with `ok`
+- `link` writes `/tmp/full-pipeline.lial`
+- `explain` prints the hash and decision-log summary
+- `replay` reports `modules 3, generated 3, validated 3`
 
-## Known limitations in MVP
+## Current limitations
 
-- Parser is minimal (project/module/use pack/repro/tape only).
-- Linker is a stub (no real symbol resolution yet).
-- SecurityBaseline rules are not enforced (warnings only).
+- no full semantic typechecker
+- policy DSL is still partial
+- `hole` is not automatically resolved yet
+- `lower` is still a stub
 
-If you want the full conceptual model, read `docs/en/guide/PIPELINE.md`.
+For the full status of the implemented language, read `docs/en/guide/LANGUAGE_STATUS.md`.

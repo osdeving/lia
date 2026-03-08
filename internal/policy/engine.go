@@ -275,7 +275,7 @@ func parseList(s string) []string {
 	parts := strings.Split(body, ",")
 	var out []string
 	for _, p := range parts {
-		item := strings.TrimSpace(strings.Trim(p, "\""))
+		item := strings.Trim(strings.TrimSpace(p), "\"")
 		if item != "" {
 			out = append(out, item)
 		}

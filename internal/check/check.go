@@ -17,6 +17,7 @@ func CheckProgram(p *ir.Program, packs []ir.Pack) []ir.Diagnostic {
 	if strings.TrimSpace(p.Version) == "" {
 		diags = append(diags, ir.Diagnostic{Severity: "error", Message: "program version is required"})
 	}
+	diags = append(diags, validateRepro(p)...)
 	for i := range p.Modules {
 		m := &p.Modules[i]
 		if strings.TrimSpace(m.Name) == "" {
@@ -64,6 +65,55 @@ func validateEffects(p *ir.Program) []ir.Diagnostic {
 		}
 		for _, ad := range m.Adapters {
 			diags = append(diags, validateEffectList(m.Name, ad.Effects, allowed)...)
+		}
+	}
+
+	return diags
+}
+
+func validateRepro(p *ir.Program) []ir.Diagnostic {
+	var diags []ir.Diagnostic
+	allowedProfiles := map[ir.ReproProfile]bool{
+		"":                 true,
+		ir.ReproStrict:     true,
+		ir.ReproPinned:     true,
+		ir.ReproBestEffort: true,
+	}
+
+	for _, proj := range p.Projects {
+		if !allowedProfiles[proj.Repro] {
+			diags = append(diags, ir.Diagnostic{
+				Severity: "error",
+				Message:  "invalid repro profile: " + string(proj.Repro),
+				Path:     proj.Name,
+			})
+		}
+		if (proj.Repro == ir.ReproStrict || proj.Repro == ir.ReproPinned) && strings.TrimSpace(proj.Tape) == "" {
+			diags = append(diags, ir.Diagnostic{
+				Severity: "error",
+				Message:  "project tape is required when repro is strict or pinned",
+				Path:     proj.Name,
+			})
+		}
+	}
+
+	for _, mod := range p.Modules {
+		if mod.Gen == nil {
+			continue
+		}
+		if strings.TrimSpace(mod.Gen.PromptHash) != "" && strings.TrimSpace(mod.Gen.PromptRef) == "" {
+			diags = append(diags, ir.Diagnostic{
+				Severity: "error",
+				Message:  "gen.prompt_ref required when prompt_hash is set",
+				Path:     mod.Name,
+			})
+		}
+		if strings.TrimSpace(mod.Gen.PromptRef) != "" && strings.TrimSpace(mod.Gen.ModelID) == "" {
+			diags = append(diags, ir.Diagnostic{
+				Severity: "error",
+				Message:  "gen.model_id required when prompt_ref is set",
+				Path:     mod.Name,
+			})
 		}
 	}
 

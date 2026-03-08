@@ -3,13 +3,13 @@
 ## Commands
 
 - `lia parse <file.lia> -o out.liao`
-  - minimal parser; outputs canonical JSON
+  - parses the supported v0.1 grammar and writes canonical JSON
 
 - `lia check <file.liao|file.lial>`
-  - runs local validation + pack rules (subset)
+  - runs structural, effects, reproducibility, and subset pack validation
 
 - `lia link <inputs...> -o out.lial --decision-log out.lial.decision-log.json`
-  - merges inputs and emits a decision log
+  - resolves symbols deterministically and emits a decision log
 
 - `lia explain <file.lial> --decision-log out.lial.decision-log.json`
   - prints hash + summary
@@ -18,7 +18,10 @@
   - stub lowerers
 
 - `lia replay <file.lial> --tape prompt-tape.json`
-  - placeholder for future replay
+  - validates `@gen.prompt_ref` and `@gen.prompt_hash` against the tape
+
+- `lia gen project --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
+  - uses AI to generate a LIA project from a JSON spec and already runs parse/check/link/replay
 
 ## Pack loading
 
