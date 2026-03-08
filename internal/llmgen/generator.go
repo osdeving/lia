@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ type Generator struct {
 	Provider Provider
 	TapeFile string // Path to prompt-tape.json
 }
+
+const maxGenerationAttempts = 3
 
 // NewGenerator creates a new LLM-based generator.
 func NewGenerator(provider Provider, tapeFile string) *Generator {
@@ -55,26 +58,7 @@ func (g *Generator) GenerateLIAModuleAsset(ctx context.Context, spec ModuleSpec)
 		},
 	}
 
-	resp, err := g.Provider.Generate(ctx, req)
-	if err != nil {
-		return nil, fmt.Errorf("llm generation failed: %w", err)
-	}
-
-	providerModel := resp.Model
-	if providerModel == "" {
-		providerModel = spec.Model
-	}
-	meta := &GenMetadata{
-		PromptRef:  promptRef,
-		PromptHash: repro.ComputePromptHash(prompt),
-		ModelID:    providerModel,
-		ModelParams: map[string]interface{}{
-			"temperature": spec.Temperature,
-		},
-		Timestamp: resp.Timestamp,
-	}
-
-	module, err := g.parseModuleResponse(spec, resp.Content)
+	resp, module, meta, err := g.generateAndRepair(ctx, spec, req, promptRef, prompt)
 	if err != nil {
 		return nil, err
 	}
@@ -106,18 +90,159 @@ type GenMetadata struct {
 }
 
 func (g *Generator) buildPrompt(spec ModuleSpec) string {
-	return fmt.Sprintf(`You are a LIA code generator. Generate a LIA module with the following specification:
+	return fmt.Sprintf(`You are generating code in LIA v0.1.
+
+Return exactly one LIA module and nothing else.
+Do not use markdown fences.
+Do not explain the result.
+Do not invent syntax outside the supported subset.
+
+Supported top-level module shape:
+module <qname> as <role> {
+  // allowed declarations depend on the role
+}
+
+Supported declarations:
+- type Name = Base where predicate;
+- enum Name { A, B, C };
+- port Name { fn Method(arg: Type) -> (out: Type); }
+- usecase Name { input { x: Type }; output { y: Type }; effects [pure|io|tx|emit]; let x = expr; if expr { ... } else { ... } while expr { ... } for item in [1,2] { ... } return expr; }
+- adapter Name implements module::port:PortName { input { ... }; output { ... }; effects [io]; return true; }
+- wiring Name { bind module::port:PortName -> module::adapter:AdapterName; }
+- prefer pref_name: module::port:PortName weight 0.6;
+- candidate module::port:PortName score 0.8;
+- hole MissingThing: need.some.contract;
+- constraint name: raw_expr;
+
+Supported expressions:
+- literals: numbers, strings, true, false, lists
+- operators: || && == != < <= > >= + - * / %% !
+- calls: Save(id);
+- member/index access: obj.field, list[0]
+
+Hard rules:
+- domain modules should use only type/enum/usecase with effects [pure] when needed
+- port modules should declare ports and optional candidates
+- usecase modules may declare usecase, adapter, wiring, prefer, hole, constraint
+- never emit keywords such as contract, record, class, interface, struct, impl, package, import, match
+- every field and parameter must use Name: Type syntax
+- every statement must end with ';' when required by the grammar
+- if role is domain, do not use io
 
 Module Name: %s
 Role: %s
-Context: %s
+Context:
+%s
 
-Generate only the module definition in LIA syntax. Follow these constraints:
-1. If role is "domain", do not use "io" effect
-2. Use proper typing and contracts
-3. Include necessary constraints
+Role examples:
+domain:
+module orders.domain as domain {
+  type OrderId = String where nonEmpty;
+  enum Status { NEW, PAID };
+}
 
-Output only valid LIA code.`, spec.Name, spec.Role, spec.Context)
+port:
+module orders.port as port {
+  port OrderRepository {
+    fn Save(id: OrderId) -> (ok: Bool);
+  }
+}
+
+usecase:
+module orders.app as usecase {
+  usecase CreateOrder {
+    input { id: OrderId };
+    output { ok: Bool };
+    effects [io];
+    return true;
+  }
+  adapter OrdersDb implements orders.port::port:OrderRepository {
+    effects [io];
+    return true;
+  }
+  wiring OrdersWiring {
+    bind orders.port::port:OrderRepository -> orders.app::adapter:OrdersDb;
+  }
+}
+
+Return only the final LIA module.`, spec.Name, spec.Role, spec.Context)
+}
+
+func (g *Generator) generateAndRepair(ctx context.Context, spec ModuleSpec, req GenerateRequest, promptRef, prompt string) (*GenerateResponse, *ir.Module, *GenMetadata, error) {
+	currentReq := req
+	var lastResp *GenerateResponse
+	var lastErr error
+
+	for attempt := 1; attempt <= maxGenerationAttempts; attempt++ {
+		resp, err := g.Provider.Generate(ctx, currentReq)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("llm generation failed: %w", err)
+		}
+		lastResp = resp
+
+		module, parseErr := g.parseModuleResponse(spec, resp.Content)
+		if parseErr == nil {
+			providerModel := resp.Model
+			if providerModel == "" {
+				providerModel = spec.Model
+			}
+			meta := &GenMetadata{
+				PromptRef:  promptRef,
+				PromptHash: repro.ComputePromptHash(prompt),
+				ModelID:    providerModel,
+				ModelParams: map[string]interface{}{
+					"temperature": spec.Temperature,
+				},
+				Timestamp: resp.Timestamp,
+			}
+			return resp, module, meta, nil
+		}
+
+		lastErr = parseErr
+		if attempt == maxGenerationAttempts {
+			break
+		}
+		currentReq.Prompt = buildRepairPrompt(prompt, spec, resp.Content, parseErr.Error())
+	}
+
+	if lastErr == nil {
+		lastErr = fmt.Errorf("unknown generation failure")
+	}
+	if lastResp != nil && strings.TrimSpace(lastResp.Content) != "" {
+		return nil, nil, nil, fmt.Errorf("%w; last response: %s", lastErr, compactText(lastResp.Content, 600))
+	}
+	return nil, nil, nil, lastErr
+}
+
+func buildRepairPrompt(originalPrompt string, spec ModuleSpec, previousOutput, parseErr string) string {
+	return fmt.Sprintf(`The previous answer was not valid LIA and failed to parse.
+
+Original task:
+%s
+
+Required module name: %s
+Required role: %s
+
+Parser error:
+%s
+
+Previous invalid output:
+%s
+
+Now repair the output.
+Return exactly one valid LIA module.
+Do not use markdown fences.
+Do not include prose.
+Do not invent unsupported syntax.
+The output must start with "module %s as %s {" or "@gen {" followed by that module.`, originalPrompt, spec.Name, spec.Role, parseErr, previousOutput, spec.Name, spec.Role)
+}
+
+func compactText(input string, limit int) string {
+	trim := strings.TrimSpace(input)
+	if len(trim) <= limit {
+		return trim
+	}
+	return trim[:limit] + "..."
 }
 
 func (g *Generator) recordPrompt(prompt string, spec ModuleSpec) (string, error) {
@@ -189,15 +314,12 @@ func (g *Generator) parseModuleResponse(spec ModuleSpec, content string) (*ir.Mo
 
 func stripCodeFence(content string) string {
 	trim := strings.TrimSpace(content)
-	if !strings.HasPrefix(trim, "```") {
-		return trim
+
+	if block := extractFencedModuleBlock(trim); block != "" {
+		return block
 	}
-	lines := strings.Split(trim, "\n")
-	if len(lines) < 3 {
-		return trim
-	}
-	if strings.HasPrefix(lines[0], "```") && strings.HasPrefix(lines[len(lines)-1], "```") {
-		return strings.TrimSpace(strings.Join(lines[1:len(lines)-1], "\n"))
+	if block := extractModuleBlock(trim); block != "" {
+		return block
 	}
 	return trim
 }
@@ -211,6 +333,50 @@ func normalizedModuleSource(content string) string {
 		}
 	}
 	return trim
+}
+
+func extractFencedModuleBlock(content string) string {
+	lines := strings.Split(content, "\n")
+	inFence := false
+	var block []string
+
+	for _, line := range lines {
+		trim := strings.TrimSpace(line)
+		if strings.HasPrefix(trim, "```") {
+			if inFence {
+				candidate := strings.TrimSpace(strings.Join(block, "\n"))
+				if containsModule(candidate) {
+					return candidate
+				}
+				block = nil
+				inFence = false
+				continue
+			}
+			inFence = true
+			block = nil
+			continue
+		}
+		if inFence {
+			block = append(block, line)
+		}
+	}
+	return ""
+}
+
+func extractModuleBlock(content string) string {
+	re := regexp.MustCompile(`(?s)(@gen\s*\{.*?\}\s*)?module\s+[A-Za-z_][A-Za-z0-9_:.]*.*`)
+	match := re.FindString(content)
+	if match == "" {
+		return ""
+	}
+	return strings.TrimSpace(match)
+}
+
+func containsModule(content string) bool {
+	return strings.Contains(content, "\nmodule ") ||
+		strings.HasPrefix(strings.TrimSpace(content), "module ") ||
+		strings.Contains(content, "\n@gen") ||
+		strings.HasPrefix(strings.TrimSpace(content), "@gen")
 }
 
 func buildIRGenMeta(meta *GenMetadata, spec ModuleSpec) *ir.GenMeta {
