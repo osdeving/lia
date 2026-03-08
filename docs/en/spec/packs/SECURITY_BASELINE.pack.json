@@ -1,0 +1,18 @@
+{
+  "name": "SecurityBaseline",
+  "version": "0.1.0",
+  "summary": "Security baseline for authentication, authorization, input validation, and data protection.",
+  "keywords": [
+    "security",
+    "auth",
+    "authentication",
+    "authorization",
+    "jwt",
+    "oauth",
+    "http",
+    "endpoint",
+    "tls"
+  ],
+  "targets": ["java"],
+  "repo_signals": ["pom.xml", "build.gradle", "src/main/java"]
+}

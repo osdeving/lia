@@ -1,0 +1,7 @@
+{
+  "name": "orders-prompt-demo",
+  "target": "java",
+  "packs": {
+    "builtin": ["ArchBaseline"]
+  }
+}

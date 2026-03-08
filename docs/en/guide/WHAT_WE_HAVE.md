@@ -13,6 +13,8 @@ This document is a plain checklist for contributors.
 - smoke-test fixture under `examples/full-pipeline/`
 - real Java lowering from `.lial`
 - comparative demo for `direct Java` vs `LIA -> Java`
+- internal free-form prompt planner through `lia gen app`
+- pack manifests for inference
 
 ## We don't have (yet)
 

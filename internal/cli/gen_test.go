@@ -88,6 +88,80 @@ func TestCLIGenProject_OpenAICompatible(t *testing.T) {
 	}
 }
 
+func TestCLIGenApp_OpenAICompatible(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Messages []struct {
+				Content string `json:"content"`
+			} `json:"messages"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			t.Fatalf("decode request: %v", err)
+		}
+		prompt := req.Messages[0].Content
+		content := generatedGenAppResponse(prompt)
+		resp := map[string]any{
+			"model": "mock-model",
+			"choices": []map[string]any{
+				{
+					"message": map[string]any{
+						"content": content,
+					},
+				},
+			},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			t.Fatalf("encode response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	manifestPath := filepath.Join(t.TempDir(), "lia.json")
+	manifest := `{
+  "name": "prompt-demo",
+  "target": "java",
+  "packs": {
+    "builtin": ["ArchBaseline"]
+  }
+}`
+	if err := os.WriteFile(manifestPath, []byte(manifest), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	outDir := filepath.Join(t.TempDir(), "generated")
+	packDir := filepath.Join(mustRepoRoot(t), "docs", "pt-br", "spec", "packs")
+	out, err := executeCLI(
+		"gen", "app",
+		"--prompt", "Quero um servico de pedidos com repositorio, create order e wiring explicito.",
+		"--manifest", manifestPath,
+		"--provider", "openai-compatible",
+		"--base-url", server.URL,
+		"--model", "mock-model",
+		"--out-dir", outDir,
+		"--pack-dir", packDir,
+	)
+	if err != nil {
+		t.Fatalf("gen app failed: %v\n%s", err, out)
+	}
+	if !strings.Contains(out, "java compile yes") {
+		t.Fatalf("unexpected output: %s", out)
+	}
+
+	for _, path := range []string{
+		filepath.Join(outDir, ".lia", "plan.json"),
+		filepath.Join(outDir, ".lia", "workspace.json"),
+		filepath.Join(outDir, "project.lia"),
+		filepath.Join(outDir, "project.lial"),
+		filepath.Join(outDir, "java", "pom.xml"),
+		filepath.Join(outDir, "java.compile.txt"),
+	} {
+		if _, err := os.Stat(path); err != nil {
+			t.Fatalf("expected generated artifact %s: %v", path, err)
+		}
+	}
+}
+
 func generatedModuleFromPrompt(prompt string) string {
 	switch {
 	case strings.Contains(prompt, "Module Name: orders.domain"):
@@ -120,4 +194,23 @@ func generatedModuleFromPrompt(prompt string) string {
   prefer repo_preference: orders.port::port:OrderRepository weight 0.6;
 }`
 	}
+}
+
+func generatedGenAppResponse(prompt string) string {
+	if strings.Contains(prompt, "You are planning a LIA application from a free-form prompt.") {
+		return `{
+  "name": "PromptDemo",
+  "brief": "Servico de pedidos com dominio, repository e create order.",
+  "repro": "pinned",
+  "packs": [
+    { "name": "ArchBaseline", "version": "0.1.0" }
+  ],
+  "modules": [
+    { "name": "orders.domain", "role": "domain", "context": "Defina OrderId e Status." },
+    { "name": "orders.port", "role": "port", "context": "Exponha OrderRepository usando OrderId." },
+    { "name": "orders.app", "role": "usecase", "context": "Crie CreateOrder, OrdersDb e OrdersWiring." }
+  ]
+}`
+	}
+	return generatedModuleFromPrompt(prompt)
 }

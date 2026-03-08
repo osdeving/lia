@@ -11,6 +11,7 @@ Este documento descreve o que a LIA suporta hoje no código, o que já funciona 
 - `lia replay`: validação do `.lial` contra `prompt-tape.json` usando `@gen.prompt_ref` e `@gen.prompt_hash`.
 - `internal/llmgen`: grava prompt tape no formato canônico e parseia o LIA devolvido pelo provider.
 - `lia gen project`: bootstrap de projeto LIA a partir de `project-spec.json` + provider compatível.
+- `lia gen app`: bootstrap a partir de prompt livre + `lia.json` opcional + catálogo de packs.
 - `lia lower --target java`: gera projeto Java multi-arquivo compilável a partir do `.lial`.
 - `lia demo compare`: compara `Java direto` vs `LIA -> Java` com o mesmo briefing.
 
@@ -153,6 +154,36 @@ Artefatos esperados:
 - `lia-artifacts/prompt-tape.json`
 - `lia-artifacts/project.lial.decision-log.json`
 - `lia-java/`
+
+### Prompt livre para app
+
+Use o exemplo em `examples/prompt-app/`:
+
+```bash
+mkdir -p /tmp/lia-prompt-app
+cp ./examples/prompt-app/lia.json /tmp/lia-prompt-app/
+cp ./examples/prompt-app/prompt.txt /tmp/lia-prompt-app/
+cp -R ./docs/pt-br/spec/packs /tmp/lia-prompt-app/packs
+cd /tmp/lia-prompt-app
+
+go run /home/willams/LIA/lia/cmd/lia gen app \
+  --prompt "$(cat ./prompt.txt)" \
+  --provider openai-compatible \
+  --base-url https://api.openai.com \
+  --model gpt-4o-mini \
+  --temperature 0.1 \
+  --out-dir ./out \
+  --pack-dir ./packs
+```
+
+Artefatos esperados:
+
+- `out/.lia/workspace.json`
+- `out/.lia/plan.json`
+- `out/project.lia`
+- `out/project.lial`
+- `out/java/`
+- `out/java.compile.txt`
 
 ## Como usar com IA agora
 

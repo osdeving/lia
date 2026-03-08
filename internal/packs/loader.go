@@ -17,7 +17,12 @@ type Loader struct {
 
 // DefaultSearchDirs returns default pack lookup paths that exist.
 func DefaultSearchDirs() []string {
-	candidates := []string{"./packs", "./docs/spec/packs"}
+	candidates := []string{
+		"./packs",
+		"./docs/spec/packs",
+		"./docs/pt-br/spec/packs",
+		"./docs/en/spec/packs",
+	}
 	var dirs []string
 	for _, dir := range candidates {
 		if info, err := os.Stat(dir); err == nil && info.IsDir() {

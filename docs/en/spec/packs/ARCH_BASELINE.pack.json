@@ -1,0 +1,34 @@
+{
+  "name": "ArchBaseline",
+  "version": "0.1.0",
+  "summary": "Architectural baseline with domain, port, and usecase modules for service-style applications.",
+  "keywords": [
+    "service",
+    "api",
+    "domain",
+    "repository",
+    "use case",
+    "hexagonal",
+    "clean architecture"
+  ],
+  "targets": ["java"],
+  "repo_signals": ["pom.xml", "build.gradle", "src/main/java"],
+  "default_selected": true,
+  "module_templates": [
+    {
+      "suffix": "domain",
+      "role": "domain",
+      "context": "Define the core domain vocabulary, types, and enums."
+    },
+    {
+      "suffix": "port",
+      "role": "port",
+      "context": "Define external contracts and repositories used by the application."
+    },
+    {
+      "suffix": "app",
+      "role": "usecase",
+      "context": "Define use cases, adapters, and wiring."
+    }
+  ]
+}

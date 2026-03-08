@@ -103,6 +103,7 @@ Comandos disponíveis:
 - `lia lower <file.lial> --target python -o out.py`
 - `lia replay <file.lial> --tape prompt-tape.json`
 - `lia gen project --spec project-spec.json --provider ... --model ... --out-dir out-dir`
+- `lia gen app --prompt "..." --out-dir out-dir`
 - `lia demo compare --spec project-spec.json --provider ... --model ... --out-dir out-dir`
 
 ---

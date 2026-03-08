@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -15,6 +16,8 @@ import (
 	"github.com/willams/lia/internal/ir"
 	"github.com/willams/lia/internal/linker"
 	"github.com/willams/lia/internal/llmgen"
+	"github.com/willams/lia/internal/lower/java"
+	"github.com/willams/lia/internal/packs"
 	"github.com/willams/lia/internal/parser"
 	"github.com/willams/lia/internal/repro"
 )
@@ -45,94 +48,153 @@ var genProjectCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-
-		if err := os.MkdirAll(outDir, 0o755); err != nil {
-			return err
-		}
-		tapePath := filepath.Join(outDir, spec.TapeFile)
-		if err := os.MkdirAll(filepath.Dir(tapePath), 0o755); err != nil {
-			return err
-		}
-
-		generator := llmgen.NewGenerator(provider, tapePath)
-		assets, err := generateProjectModules(context.Background(), generator, spec, cmd)
+		defaults, err := generationDefaultsFromFlags(cmd, nil)
 		if err != nil {
 			return err
 		}
 
-		projectPath := filepath.Join(outDir, "project.lia")
-		projectSource := renderProjectSource(spec, assets)
-		if err := os.WriteFile(projectPath, []byte(projectSource), 0o644); err != nil {
-			return err
-		}
-
-		prog, err := parser.ParseFile(projectPath)
-		if err != nil {
-			return fmt.Errorf("parse generated project: %w", err)
-		}
-
-		liaoPath := filepath.Join(outDir, "project.liao")
-		if err := codec.WriteProgramFile(liaoPath, prog); err != nil {
-			return err
-		}
-
-		packs, packDiags := loadPacksForProgram(cmd, prog)
-		diags := append(packDiags, check.CheckProgram(prog, packs)...)
-		printDiags(cmd, diags)
-		if check.HasErrors(diags) {
-			return fmt.Errorf("generated project failed validation")
-		}
-
-		linked, log, linkDiags, err := linker.Link([]*ir.Program{prog}, packs)
+		result, err := generateProjectArtifacts(context.Background(), cmd, spec, provider, outDir, defaults)
 		if err != nil {
 			return err
 		}
-		printDiags(cmd, linkDiags)
-		if check.HasErrors(linkDiags) {
-			return fmt.Errorf("generated project failed linking")
-		}
-
-		lialPath := filepath.Join(outDir, "project.lial")
-		if err := codec.WriteProgramFile(lialPath, linked); err != nil {
-			return err
-		}
-		logPath := filepath.Join(outDir, "project.lial.decision-log.json")
-		if err := linker.WriteDecisionLog(logPath, log); err != nil {
-			return err
-		}
-
-		tape, err := repro.LoadTape(tapePath)
-		if err != nil {
-			return err
-		}
-		replayDiags, summary := repro.ValidateProgramAgainstTape(linked, tape)
-		printDiags(cmd, replayDiags)
-		if check.HasErrors(replayDiags) {
-			return fmt.Errorf("generated project failed replay validation")
-		}
-
-		fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", projectPath)
-		fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", liaoPath)
-		fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", lialPath)
-		fmt.Fprintf(cmd.OutOrStdout(), "decision log %s\n", logPath)
-		fmt.Fprintf(cmd.OutOrStdout(), "prompt tape %s\n", tapePath)
-		fmt.Fprintf(cmd.OutOrStdout(), "replay ok: modules %d, generated %d, validated %d\n", summary.Modules, summary.GeneratedModules, summary.ValidatedModules)
+		printGeneratedProjectSummary(cmd, result)
 		return nil
 	},
+}
+
+var genAppCmd = &cobra.Command{
+	Use:   "app",
+	Short: "Generate an app from a free-form prompt",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		prompt, _ := cmd.Flags().GetString("prompt")
+		if strings.TrimSpace(prompt) == "" {
+			return fmt.Errorf("--prompt is required")
+		}
+		outDir, _ := cmd.Flags().GetString("out-dir")
+		if strings.TrimSpace(outDir) == "" {
+			return fmt.Errorf("--out-dir is required")
+		}
+		manifestPath, _ := cmd.Flags().GetString("manifest")
+		target, _ := cmd.Flags().GetString("target")
+
+		cwd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		workspace, err := llmgen.LoadWorkspaceContext(cwd, manifestPath, resolvePackDirs(cmd))
+		if err != nil {
+			return err
+		}
+
+		provider, err := buildGenerationProvider(cmd)
+		if err != nil {
+			return err
+		}
+		defaults, err := generationDefaultsFromFlags(cmd, workspace)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(target) == "" {
+			target = workspace.Target
+		}
+		if strings.TrimSpace(target) == "" {
+			target = "java"
+		}
+
+		manifestDirs := dedupeDirList(append(resolvePackDirs(cmd), workspace.PackDirs...))
+		manifests, err := packs.LoadManifests(manifestDirs)
+		if err != nil {
+			return err
+		}
+
+		plan, err := llmgen.PlanProject(context.Background(), provider, llmgen.PlanRequest{
+			Prompt:      prompt,
+			Target:      target,
+			Model:       defaults.Model,
+			Temperature: defaults.Temperature,
+			Workspace:   workspace,
+			Manifests:   manifests,
+		})
+		if err != nil {
+			return err
+		}
+		if err := writePlannerArtifacts(outDir, workspace, plan); err != nil {
+			return err
+		}
+
+		result, err := generateProjectArtifacts(context.Background(), cmd, plan.Spec, provider, outDir, defaults)
+		if err != nil {
+			return err
+		}
+		printGeneratedProjectSummary(cmd, result)
+
+		switch target {
+		case "", "none":
+			return nil
+		case "java":
+			javaOut := filepath.Join(outDir, "java")
+			project, err := java.LowerProject(result.Linked)
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(javaOut, 0o755); err != nil {
+				return err
+			}
+			if err := java.WriteProject(javaOut, project); err != nil {
+				return err
+			}
+			compile := compileJavaProject(javaOut)
+			if err := os.WriteFile(filepath.Join(outDir, "java.compile.txt"), []byte(renderCompileResult(compile)), 0o644); err != nil {
+				return err
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "java output %s\n", javaOut)
+			fmt.Fprintf(cmd.OutOrStdout(), "java compile %s\n", compileLabel(compile.Success))
+			return nil
+		default:
+			return fmt.Errorf("unsupported target: %s", target)
+		}
+	},
+}
+
+type generationDefaults struct {
+	Model       string
+	Temperature float64
+}
+
+type generatedProjectResult struct {
+	ProjectPath string
+	LiaoPath    string
+	LialPath    string
+	LogPath     string
+	TapePath    string
+	Linked      *ir.Program
+	Replay      repro.ValidationSummary
 }
 
 func init() {
 	rootCmd.AddCommand(genCmd)
 	genCmd.AddCommand(genProjectCmd)
+	genCmd.AddCommand(genAppCmd)
 
 	genProjectCmd.Flags().String("spec", "", "path to project-spec.json")
 	genProjectCmd.Flags().String("out-dir", "", "directory for generated project artifacts")
-	genProjectCmd.Flags().String("provider", "ollama", "provider: ollama|openai-compatible")
-	genProjectCmd.Flags().String("base-url", "", "provider base URL")
-	genProjectCmd.Flags().String("api-key-env", "OPENAI_API_KEY", "env var for openai-compatible API key")
-	genProjectCmd.Flags().String("model", "", "default model for modules without an explicit model")
-	genProjectCmd.Flags().Float64("temperature", -1, "default temperature for modules without an explicit temperature")
 	addPackDirFlag(genProjectCmd)
+	addGenerationFlags(genProjectCmd)
+
+	genAppCmd.Flags().String("prompt", "", "free-form app prompt")
+	genAppCmd.Flags().String("out-dir", "", "directory for generated app artifacts")
+	genAppCmd.Flags().String("manifest", "lia.json", "optional workspace manifest")
+	genAppCmd.Flags().String("target", "java", "output target: java|none")
+	addPackDirFlag(genAppCmd)
+	addGenerationFlags(genAppCmd)
+}
+
+func addGenerationFlags(cmd *cobra.Command) {
+	cmd.Flags().String("provider", "ollama", "provider: ollama|openai-compatible")
+	cmd.Flags().String("base-url", "", "provider base URL")
+	cmd.Flags().String("api-key-env", "OPENAI_API_KEY", "env var for openai-compatible API key")
+	cmd.Flags().String("model", "", "default model for planning/modules without an explicit model")
+	cmd.Flags().Float64("temperature", -1, "default temperature for planning/modules without an explicit temperature")
 }
 
 func buildGenerationProvider(cmd *cobra.Command) (llmgen.Provider, error) {
@@ -157,23 +219,126 @@ func buildGenerationProvider(cmd *cobra.Command) (llmgen.Provider, error) {
 	}
 }
 
-func generateProjectModules(ctx context.Context, generator *llmgen.Generator, spec *llmgen.ProjectSpec, cmd *cobra.Command) ([]*llmgen.GeneratedModule, error) {
-	defaultModel, _ := cmd.Flags().GetString("model")
-	defaultTemp, _ := cmd.Flags().GetFloat64("temperature")
+func generationDefaultsFromFlags(cmd *cobra.Command, workspace *llmgen.WorkspaceContext) (generationDefaults, error) {
+	model, _ := cmd.Flags().GetString("model")
+	temp, _ := cmd.Flags().GetFloat64("temperature")
+	if strings.TrimSpace(model) == "" && workspace != nil {
+		model = workspace.Model
+	}
+	if temp < 0 && workspace != nil && workspace.Temperature > 0 {
+		temp = workspace.Temperature
+	}
+	if strings.TrimSpace(model) == "" {
+		return generationDefaults{}, fmt.Errorf("no model configured")
+	}
+	if temp < 0 {
+		temp = 0.1
+	}
+	return generationDefaults{
+		Model:       model,
+		Temperature: temp,
+	}, nil
+}
 
+func generateProjectArtifacts(ctx context.Context, cmd *cobra.Command, spec *llmgen.ProjectSpec, provider llmgen.Provider, outDir string, defaults generationDefaults) (*generatedProjectResult, error) {
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return nil, err
+	}
+	tapePath := filepath.Join(outDir, spec.TapeFile)
+	if err := os.MkdirAll(filepath.Dir(tapePath), 0o755); err != nil {
+		return nil, err
+	}
+
+	generator := llmgen.NewGenerator(provider, tapePath)
+	assets, err := generateProjectModulesWithDefaults(ctx, generator, spec, defaults, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	projectPath := filepath.Join(outDir, "project.lia")
+	projectSource := renderProjectSource(spec, assets)
+	if err := os.WriteFile(projectPath, []byte(projectSource), 0o644); err != nil {
+		return nil, err
+	}
+
+	prog, err := parser.ParseFile(projectPath)
+	if err != nil {
+		return nil, fmt.Errorf("parse generated project: %w", err)
+	}
+
+	liaoPath := filepath.Join(outDir, "project.liao")
+	if err := codec.WriteProgramFile(liaoPath, prog); err != nil {
+		return nil, err
+	}
+
+	loadedPacks, packDiags := loadPacksForProgram(cmd, prog)
+	diags := append(packDiags, check.CheckProgram(prog, loadedPacks)...)
+	printDiags(cmd, diags)
+	if check.HasErrors(diags) {
+		return nil, fmt.Errorf("generated project failed validation")
+	}
+
+	linked, log, linkDiags, err := linker.Link([]*ir.Program{prog}, loadedPacks)
+	if err != nil {
+		return nil, err
+	}
+	printDiags(cmd, linkDiags)
+	if check.HasErrors(linkDiags) {
+		return nil, fmt.Errorf("generated project failed linking")
+	}
+
+	lialPath := filepath.Join(outDir, "project.lial")
+	if err := codec.WriteProgramFile(lialPath, linked); err != nil {
+		return nil, err
+	}
+	logPath := filepath.Join(outDir, "project.lial.decision-log.json")
+	if err := linker.WriteDecisionLog(logPath, log); err != nil {
+		return nil, err
+	}
+
+	tape, err := repro.LoadTape(tapePath)
+	if err != nil {
+		return nil, err
+	}
+	replayDiags, summary := repro.ValidateProgramAgainstTape(linked, tape)
+	printDiags(cmd, replayDiags)
+	if check.HasErrors(replayDiags) {
+		return nil, fmt.Errorf("generated project failed replay validation")
+	}
+
+	return &generatedProjectResult{
+		ProjectPath: projectPath,
+		LiaoPath:    liaoPath,
+		LialPath:    lialPath,
+		LogPath:     logPath,
+		TapePath:    tapePath,
+		Linked:      linked,
+		Replay:      summary,
+	}, nil
+}
+
+func generateProjectModules(ctx context.Context, generator *llmgen.Generator, spec *llmgen.ProjectSpec, cmd *cobra.Command) ([]*llmgen.GeneratedModule, error) {
+	defaults, err := generationDefaultsFromFlags(cmd, nil)
+	if err != nil {
+		return nil, err
+	}
+	return generateProjectModulesWithDefaults(ctx, generator, spec, defaults, cmd)
+}
+
+func generateProjectModulesWithDefaults(ctx context.Context, generator *llmgen.Generator, spec *llmgen.ProjectSpec, defaults generationDefaults, cmd *cobra.Command) ([]*llmgen.GeneratedModule, error) {
 	var assets []*llmgen.GeneratedModule
 	for _, mod := range spec.Modules {
 		model := mod.Model
 		if model == "" {
-			model = defaultModel
+			model = defaults.Model
 		}
 		if model == "" {
 			return nil, fmt.Errorf("no model configured for module %s", mod.Name)
 		}
 
 		temp := mod.Temperature
-		if temp == 0 && defaultTemp >= 0 {
-			temp = defaultTemp
+		if temp == 0 {
+			temp = defaults.Temperature
 		}
 
 		contextText := combineGenerationContext(spec.Brief, mod.Context)
@@ -188,9 +353,67 @@ func generateProjectModules(ctx context.Context, generator *llmgen.Generator, sp
 			return nil, fmt.Errorf("generate module %s: %w", mod.Name, err)
 		}
 		assets = append(assets, asset)
-		fmt.Fprintf(cmd.OutOrStdout(), "generated %s (%s)\n", mod.Name, mod.Role)
+		if cmd != nil {
+			fmt.Fprintf(cmd.OutOrStdout(), "generated %s (%s)\n", mod.Name, mod.Role)
+		}
 	}
 	return assets, nil
+}
+
+func printGeneratedProjectSummary(cmd *cobra.Command, result *generatedProjectResult) {
+	if result == nil {
+		return
+	}
+	fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", result.ProjectPath)
+	fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", result.LiaoPath)
+	fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", result.LialPath)
+	fmt.Fprintf(cmd.OutOrStdout(), "decision log %s\n", result.LogPath)
+	fmt.Fprintf(cmd.OutOrStdout(), "prompt tape %s\n", result.TapePath)
+	fmt.Fprintf(cmd.OutOrStdout(), "replay ok: modules %d, generated %d, validated %d\n", result.Replay.Modules, result.Replay.GeneratedModules, result.Replay.ValidatedModules)
+}
+
+func writePlannerArtifacts(outDir string, workspace *llmgen.WorkspaceContext, plan *llmgen.PlanResult) error {
+	if plan == nil || plan.Spec == nil {
+		return fmt.Errorf("nil plan")
+	}
+	planDir := filepath.Join(outDir, ".lia")
+	if err := os.MkdirAll(planDir, 0o755); err != nil {
+		return err
+	}
+	if workspace != nil {
+		b, err := json.MarshalIndent(workspace, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(planDir, "workspace.json"), append(b, '\n'), 0o644); err != nil {
+			return err
+		}
+	}
+	if err := os.WriteFile(filepath.Join(planDir, "plan.prompt.txt"), []byte(plan.PlanningPrompt), 0o644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filepath.Join(planDir, "plan.raw.txt"), []byte(plan.RawResponse), 0o644); err != nil {
+		return err
+	}
+	b, err := json.MarshalIndent(plan.Spec, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(planDir, "plan.json"), append(b, '\n'), 0o644)
+}
+
+func dedupeDirList(dirs []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, dir := range dirs {
+		dir = strings.TrimSpace(dir)
+		if dir == "" || seen[dir] {
+			continue
+		}
+		seen[dir] = true
+		out = append(out, dir)
+	}
+	return out
 }
 
 func combineGenerationContext(projectBrief, moduleContext string) string {

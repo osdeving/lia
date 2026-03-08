@@ -26,6 +26,9 @@
 - `lia gen project --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
   - usa IA para gerar um projeto LIA a partir de uma spec JSON e já roda parse/check/link/replay
 
+- `lia gen app --prompt "..." --provider ollama|openai-compatible --model <model> --out-dir <dir>`
+  - usa prompt livre, `lia.json` opcional e manifests de packs para gerar um plano interno, produzir LIA e, no target Java, emitir o projeto final
+
 - `lia demo compare --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
   - gera `Java direto` e `LIA -> Java`, compila os dois ramos e escreve `COMPARISON.md`
 
