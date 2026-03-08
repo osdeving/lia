@@ -76,6 +76,8 @@ var genAppCmd = &cobra.Command{
 		}
 		manifestPath, _ := cmd.Flags().GetString("manifest")
 		target, _ := cmd.Flags().GetString("target")
+		javaProfileName, _ := cmd.Flags().GetString("java-profile")
+		javaProfilesValue, _ := cmd.Flags().GetString("java-profiles")
 
 		cwd, err := os.Getwd()
 		if err != nil {
@@ -132,23 +134,38 @@ var genAppCmd = &cobra.Command{
 		case "", "none":
 			return nil
 		case "java":
-			javaOut := filepath.Join(outDir, "java")
-			project, err := java.LowerProject(result.Linked)
+			if strings.TrimSpace(javaProfilesValue) == "" && strings.TrimSpace(javaProfileName) == "plain" && workspace != nil {
+				switch strings.TrimSpace(strings.ToLower(workspace.Framework)) {
+				case "spring", "spring-boot", "springboot":
+					javaProfileName = "spring-boot"
+				case "quarkus":
+					javaProfileName = "quarkus"
+				}
+			}
+			profiles, err := resolveJavaProfiles(javaProfileName, javaProfilesValue)
 			if err != nil {
 				return err
 			}
-			if err := os.MkdirAll(javaOut, 0o755); err != nil {
-				return err
+			multi := len(profiles) > 1
+			for _, profile := range profiles {
+				javaOut := javaProfileOutputDir(outDir, profile, multi)
+				project, err := java.LowerProjectWithOptions(result.Linked, java.Options{Profile: profile})
+				if err != nil {
+					return err
+				}
+				if err := os.MkdirAll(javaOut, 0o755); err != nil {
+					return err
+				}
+				if err := java.WriteProject(javaOut, project); err != nil {
+					return err
+				}
+				compile := compileJavaProject(javaOut)
+				if err := os.WriteFile(javaProfileCompilePath(outDir, profile, multi), []byte(renderCompileResult(compile)), 0o644); err != nil {
+					return err
+				}
+				fmt.Fprintf(cmd.OutOrStdout(), "java output %s (%s)\n", javaOut, profile)
+				fmt.Fprintf(cmd.OutOrStdout(), "java compile %s (%s)\n", compileLabel(compile.Success), profile)
 			}
-			if err := java.WriteProject(javaOut, project); err != nil {
-				return err
-			}
-			compile := compileJavaProject(javaOut)
-			if err := os.WriteFile(filepath.Join(outDir, "java.compile.txt"), []byte(renderCompileResult(compile)), 0o644); err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "java output %s\n", javaOut)
-			fmt.Fprintf(cmd.OutOrStdout(), "java compile %s\n", compileLabel(compile.Success))
 			return nil
 		default:
 			return fmt.Errorf("unsupported target: %s", target)
@@ -185,6 +202,7 @@ func init() {
 	genAppCmd.Flags().String("out-dir", "", "directory for generated app artifacts")
 	genAppCmd.Flags().String("manifest", "lia.json", "optional workspace manifest")
 	genAppCmd.Flags().String("target", "java", "output target: java|none")
+	addJavaProfileFlags(genAppCmd.Flags())
 	addPackDirFlag(genAppCmd)
 	addGenerationFlags(genAppCmd)
 }

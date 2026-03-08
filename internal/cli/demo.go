@@ -44,6 +44,22 @@ var demoCompareCmd = &cobra.Command{
 			return fmt.Errorf("--out-dir is required")
 		}
 		referenceDir, _ := cmd.Flags().GetString("reference-dir")
+		compareProfileName, _ := cmd.Flags().GetString("compare-profile")
+		liaProfilesValue, _ := cmd.Flags().GetString("lia-java-profiles")
+		compareProfile, err := lowerjava.ParseProfile(compareProfileName)
+		if err != nil {
+			return err
+		}
+		liaProfiles, err := resolveJavaProfiles(string(compareProfile), liaProfilesValue)
+		if err != nil {
+			return err
+		}
+		if !containsJavaProfile(liaProfiles, compareProfile) {
+			liaProfiles = append(liaProfiles, compareProfile)
+		}
+		if strings.TrimSpace(referenceDir) == "" {
+			referenceDir = defaultReferenceDirForProfile(compareProfile)
+		}
 
 		spec, err := llmgen.LoadProjectSpec(specPath)
 		if err != nil {
@@ -70,7 +86,7 @@ var demoCompareCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		directResult, err := generateDirectJavaProject(ctx, provider, spec, directDir, directModel, directTemp)
+		directResult, err := generateDirectJavaProject(ctx, provider, spec, directDir, directModel, directTemp, compareProfile)
 		if err != nil {
 			return err
 		}
@@ -85,76 +101,94 @@ var demoCompareCmd = &cobra.Command{
 			return err
 		}
 
-		liaJavaDir := filepath.Join(outDir, "lia-java")
-		loweredProject, err := lowerjava.LowerProject(liaResult.Linked)
-		if err != nil {
-			return err
-		}
-		if err := os.MkdirAll(liaJavaDir, 0o755); err != nil {
-			return err
-		}
-		if err := lowerjava.WriteProject(liaJavaDir, loweredProject); err != nil {
-			return err
-		}
-
-		liaJavaCompile := compileJavaProject(liaJavaDir)
 		directMetrics := analyzeJavaProject(directDir)
-		liaJavaMetrics := analyzeJavaProject(liaJavaDir)
+		loweredVariants := map[lowerjava.Profile]comparisonVariant{}
+		for _, profile := range liaProfiles {
+			liaJavaDir := compareLIAJavaDir(outDir, profile)
+			loweredProject, err := lowerjava.LowerProjectWithOptions(liaResult.Linked, lowerjava.Options{Profile: profile})
+			if err != nil {
+				return err
+			}
+			if err := os.MkdirAll(liaJavaDir, 0o755); err != nil {
+				return err
+			}
+			if err := lowerjava.WriteProject(liaJavaDir, loweredProject); err != nil {
+				return err
+			}
+			compile := compileJavaProject(liaJavaDir)
+			compilePath := compareLIAJavaCompilePath(outDir, profile)
+			if err := os.WriteFile(compilePath, []byte(renderCompileResult(compile)), 0o644); err != nil {
+				return err
+			}
+			loweredVariants[profile] = comparisonVariant{
+				Name:           fmt.Sprintf("LIA -> Java (%s)", profile),
+				Profile:        string(profile),
+				Dir:            liaJavaDir,
+				Compile:        compile,
+				Metrics:        analyzeJavaProject(liaJavaDir),
+				PromptPath:     liaResult.ProjectPath,
+				RawResponse:    liaResult.TapePath,
+				CompilePath:    compilePath,
+				LoweringReport: filepath.Join(liaJavaDir, "LOWERING_REPORT.md"),
+				RepairAttempts: 0,
+				HasLIAInputs:   true,
+			}
+		}
+		liaVariant, ok := loweredVariants[compareProfile]
+		if !ok {
+			return fmt.Errorf("missing lowered LIA variant for profile %s", compareProfile)
+		}
 
 		var reference *comparisonVariant
 		if strings.TrimSpace(referenceDir) != "" {
 			if info, err := os.Stat(referenceDir); err == nil && info.IsDir() {
 				refCompile := compileJavaProject(referenceDir)
 				refMetrics := analyzeJavaProject(referenceDir)
-				if err := os.WriteFile(filepath.Join(outDir, "reference-java.compile.txt"), []byte(renderCompileResult(refCompile)), 0o644); err != nil {
+				referenceCompilePath := filepath.Join(outDir, "reference-java.compile.txt")
+				if err := os.WriteFile(referenceCompilePath, []byte(renderCompileResult(refCompile)), 0o644); err != nil {
 					return err
 				}
 				reference = &comparisonVariant{
-					Name:         "Reference Java",
-					Dir:          referenceDir,
-					Compile:      refCompile,
-					Metrics:      refMetrics,
-					HasLIAInputs: false,
+					Name:           fmt.Sprintf("Reference Java (%s)", compareProfile),
+					Profile:        string(compareProfile),
+					Dir:            referenceDir,
+					Compile:        refCompile,
+					Metrics:        refMetrics,
+					CompilePath:    referenceCompilePath,
+					RepairAttempts: 0,
+					HasLIAInputs:   false,
 				}
 			}
 		}
 
 		directVariant := comparisonVariant{
-			Name:           "Direct Java",
+			Name:           fmt.Sprintf("Direct Java (%s)", compareProfile),
+			Profile:        string(compareProfile),
 			Dir:            directDir,
 			Compile:        directResult.Compile,
 			Metrics:        directMetrics,
 			PromptPath:     directResult.PromptPath,
 			RawResponse:    directResult.RawResponsePath,
+			CompilePath:    filepath.Join(outDir, "direct-java.compile.txt"),
 			RepairAttempts: directResult.Repairs,
 			HasLIAInputs:   false,
 		}
-		if err := os.WriteFile(filepath.Join(outDir, "direct-java.compile.txt"), []byte(renderCompileResult(directResult.Compile)), 0o644); err != nil {
-			return err
-		}
-		liaVariant := comparisonVariant{
-			Name:           "LIA -> Java",
-			Dir:            liaJavaDir,
-			Compile:        liaJavaCompile,
-			Metrics:        liaJavaMetrics,
-			PromptPath:     filepath.Join(liaDir, "project.lia"),
-			RawResponse:    filepath.Join(liaDir, "prompt-tape.json"),
-			RepairAttempts: 0,
-			HasLIAInputs:   true,
-		}
-		if err := os.WriteFile(filepath.Join(outDir, "lia-java.compile.txt"), []byte(renderCompileResult(liaJavaCompile)), 0o644); err != nil {
+		if err := os.WriteFile(directVariant.CompilePath, []byte(renderCompileResult(directResult.Compile)), 0o644); err != nil {
 			return err
 		}
 
 		reportPath := filepath.Join(outDir, "COMPARISON.md")
-		report := renderComparisonReport(spec, briefPath, reference, directVariant, liaVariant, liaResult)
+		report := renderComparisonReport(spec, briefPath, reference, directVariant, liaVariant, loweredVariants, compareProfile, liaResult)
 		if err := os.WriteFile(reportPath, []byte(report), 0o644); err != nil {
 			return err
 		}
 
 		fmt.Fprintf(cmd.OutOrStdout(), "direct java: %s (%s)\n", directDir, compileLabel(directResult.Compile.Success))
 		fmt.Fprintf(cmd.OutOrStdout(), "lia artifacts: %s\n", liaDir)
-		fmt.Fprintf(cmd.OutOrStdout(), "lia java: %s (%s)\n", liaJavaDir, compileLabel(liaJavaCompile.Success))
+		for _, profile := range liaProfiles {
+			variant := loweredVariants[profile]
+			fmt.Fprintf(cmd.OutOrStdout(), "lia java %s: %s (%s)\n", profile, variant.Dir, compileLabel(variant.Compile.Success))
+		}
 		fmt.Fprintf(cmd.OutOrStdout(), "comparison report: %s\n", reportPath)
 		return nil
 	},
@@ -179,6 +213,7 @@ type javaCompileResult struct {
 	Success bool
 	Errors  string
 	Files   int
+	Tool    string
 }
 
 type javaProjectMetrics struct {
@@ -193,15 +228,25 @@ type javaProjectMetrics struct {
 	PortFiles       int
 	ApplicationDirs int
 	BootstrapFiles  int
+	SpringBootApps  int
+	SpringConfigs   int
+	SpringBeans     int
+	QuarkusMains    int
+	QuarkusScopes   int
+	QuarkusProduces int
+	LoweringReports int
 }
 
 type comparisonVariant struct {
 	Name           string
+	Profile        string
 	Dir            string
 	Compile        javaCompileResult
 	Metrics        javaProjectMetrics
 	PromptPath     string
 	RawResponse    string
+	CompilePath    string
+	LoweringReport string
 	RepairAttempts int
 	HasLIAInputs   bool
 }
@@ -217,7 +262,9 @@ func init() {
 
 	demoCompareCmd.Flags().String("spec", "", "path to project-spec.json")
 	demoCompareCmd.Flags().String("out-dir", "", "directory for comparison outputs")
-	demoCompareCmd.Flags().String("reference-dir", filepath.Join("examples", "java-reference", "orders-service"), "optional handcrafted Java reference project")
+	demoCompareCmd.Flags().String("reference-dir", "", "optional handcrafted Java reference project; defaults by compare profile")
+	demoCompareCmd.Flags().String("compare-profile", "spring-boot", "profile used for the direct-vs-LIA comparison: plain|spring-boot|quarkus")
+	demoCompareCmd.Flags().String("lia-java-profiles", "plain,spring-boot,quarkus", "comma-separated LIA lowering profiles to generate")
 	demoCompareCmd.Flags().String("provider", "ollama", "provider: ollama|openai-compatible")
 	demoCompareCmd.Flags().String("base-url", "", "provider base URL")
 	demoCompareCmd.Flags().String("api-key-env", "OPENAI_API_KEY", "env var for openai-compatible API key")
@@ -258,13 +305,13 @@ func resolveCompareModelConfig(cmd *cobra.Command, branch string) (string, float
 	return model, temp, nil
 }
 
-func generateDirectJavaProject(ctx context.Context, provider llmgen.Provider, spec *llmgen.ProjectSpec, outDir, model string, temperature float64) (*generatedJavaProject, error) {
+func generateDirectJavaProject(ctx context.Context, provider llmgen.Provider, spec *llmgen.ProjectSpec, outDir, model string, temperature float64, profile lowerjava.Profile) (*generatedJavaProject, error) {
 	if err := os.MkdirAll(outDir, 0o755); err != nil {
 		return nil, err
 	}
 
 	basePackage := "demo.compare." + sanitizeCompareSegment(spec.Name)
-	initialPrompt := buildDirectJavaPrompt(spec, basePackage)
+	initialPrompt := buildDirectJavaPrompt(spec, basePackage, profile)
 	promptPath := filepath.Join(outDir, "prompt.txt")
 	if err := os.WriteFile(promptPath, []byte(initialPrompt), 0o644); err != nil {
 		return nil, err
@@ -423,17 +470,36 @@ func compileJavaProject(dir string) javaCompileResult {
 	if err == nil {
 		dir = absDir
 	}
+	if compileWithMaven(dir) {
+		cmd := exec.Command("mvn", "-q", "-DskipTests", "compile")
+		cmd.Dir = dir
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return javaCompileResult{
+				Success: false,
+				Errors:  strings.TrimSpace(string(out)),
+				Files:   len(collectJavaFiles(dir)),
+				Tool:    "maven",
+			}
+		}
+		return javaCompileResult{
+			Success: true,
+			Files:   len(collectJavaFiles(dir)),
+			Tool:    "maven",
+		}
+	}
 	files := collectJavaFiles(dir)
 	if len(files) == 0 {
 		return javaCompileResult{
 			Success: false,
 			Errors:  "no Java files were found",
 			Files:   0,
+			Tool:    "javac",
 		}
 	}
 	buildDir := filepath.Join(dir, ".build")
 	if err := os.MkdirAll(buildDir, 0o755); err != nil {
-		return javaCompileResult{Success: false, Errors: err.Error(), Files: len(files)}
+		return javaCompileResult{Success: false, Errors: err.Error(), Files: len(files), Tool: "javac"}
 	}
 	args := append([]string{"-d", buildDir}, files...)
 	cmd := exec.Command("javac", args...)
@@ -444,16 +510,31 @@ func compileJavaProject(dir string) javaCompileResult {
 			Success: false,
 			Errors:  strings.TrimSpace(string(out)),
 			Files:   len(files),
+			Tool:    "javac",
 		}
 	}
 	return javaCompileResult{
 		Success: true,
 		Files:   len(files),
+		Tool:    "javac",
 	}
+}
+
+func compileWithMaven(dir string) bool {
+	pomPath := filepath.Join(dir, "pom.xml")
+	data, err := os.ReadFile(pomPath)
+	if err != nil {
+		return false
+	}
+	text := strings.ToLower(string(data))
+	return strings.Contains(text, "spring-boot") || strings.Contains(text, "quarkus")
 }
 
 func analyzeJavaProject(dir string) javaProjectMetrics {
 	var metrics javaProjectMetrics
+	if _, err := os.Stat(filepath.Join(dir, "LOWERING_REPORT.md")); err == nil {
+		metrics.LoweringReports++
+	}
 	for _, path := range collectJavaFiles(dir) {
 		metrics.JavaFiles++
 		content, err := os.ReadFile(path)
@@ -492,6 +573,18 @@ func analyzeJavaProject(dir string) javaProjectMetrics {
 		if strings.Contains(normPath, "Wiring.java") || strings.Contains(text, "Wiring") {
 			metrics.WiringClasses++
 		}
+		if strings.Contains(text, "@SpringBootApplication") {
+			metrics.SpringBootApps++
+		}
+		if strings.Contains(text, "@Configuration") {
+			metrics.SpringConfigs++
+		}
+		metrics.SpringBeans += strings.Count(text, "@Bean")
+		if strings.Contains(text, "@QuarkusMain") {
+			metrics.QuarkusMains++
+		}
+		metrics.QuarkusScopes += strings.Count(text, "@ApplicationScoped")
+		metrics.QuarkusProduces += strings.Count(text, "@Produces")
 	}
 	return metrics
 }
@@ -518,7 +611,7 @@ func collectJavaFiles(dir string) []string {
 	return files
 }
 
-func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, reference *comparisonVariant, direct, lia comparisonVariant, liaResult *liaCompareResult) string {
+func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, reference *comparisonVariant, direct, lia comparisonVariant, lowered map[lowerjava.Profile]comparisonVariant, compareProfile lowerjava.Profile, liaResult *liaCompareResult) string {
 	var b strings.Builder
 	b.WriteString("# Java Comparison Demo\n\n")
 	b.WriteString("## Common Brief\n\n")
@@ -528,14 +621,52 @@ func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, referenc
 	b.WriteString("- Business brief: ")
 	b.WriteString(spec.Brief)
 	b.WriteString("\n\n")
+	b.WriteString("## Comparison Focus\n\n")
+	b.WriteString("- Compared profile: `")
+	b.WriteString(string(compareProfile))
+	b.WriteString("`\n")
+	b.WriteString("- The direct branch receives the same brief and framework target, but no LIA intermediate.\n")
+	b.WriteString("- The LIA branch first generates `project.lia`, validates it, and only then lowers to Java.\n\n")
 	b.WriteString("## Variants\n\n")
-	b.WriteString("| Variant | Compiles | Java files | Records | Interfaces | UseCases | Adapters | Wiring | Provenance |\n")
-	b.WriteString("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |\n")
+	b.WriteString("| Variant | Profile | Compiles | Tool | Java files | Records | Interfaces | UseCases | Wiring | Provenance |\n")
+	b.WriteString("| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |\n")
 	if reference != nil {
 		b.WriteString(renderVariantRow(*reference))
 	}
 	b.WriteString(renderVariantRow(direct))
 	b.WriteString(renderVariantRow(lia))
+	b.WriteString("\n")
+	if len(lowered) > 1 {
+		b.WriteString("## Same LIA Across Profiles\n\n")
+		b.WriteString("| Lowered variant | Compiles | Tool | Spring Boot app | Spring beans | Quarkus main | Quarkus producers |\n")
+		b.WriteString("| --- | --- | --- | ---: | ---: | ---: | ---: |\n")
+		profiles := sortedLowerProfiles(lowered)
+		for _, profile := range profiles {
+			variant := lowered[profile]
+			b.WriteString(fmt.Sprintf("| %s | %s | %s | %d | %d | %d | %d |\n",
+				variant.Name,
+				compileLabel(variant.Compile.Success),
+				variant.Compile.Tool,
+				variant.Metrics.SpringBootApps,
+				variant.Metrics.SpringBeans,
+				variant.Metrics.QuarkusMains,
+				variant.Metrics.QuarkusProduces,
+			))
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("## What Was Missing Without LIA\n\n")
+	for _, note := range directGapNotes(reference, direct, lia, compareProfile) {
+		b.WriteString("- ")
+		b.WriteString(note)
+		b.WriteByte('\n')
+	}
+	b.WriteString("\n## What LIA Preserved\n\n")
+	for _, note := range liaStrengthNotes(lia, compareProfile, liaResult) {
+		b.WriteString("- ")
+		b.WriteString(note)
+		b.WriteByte('\n')
+	}
 	b.WriteString("\n")
 	b.WriteString("## Branch Artifacts\n\n")
 	if reference != nil {
@@ -543,7 +674,7 @@ func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, referenc
 		b.WriteString(filepath.ToSlash(reference.Dir))
 		b.WriteString("`\n")
 		b.WriteString("- Reference Java compile report: `")
-		b.WriteString(filepath.ToSlash(filepath.Join(filepath.Dir(briefPath), "reference-java.compile.txt")))
+		b.WriteString(filepath.ToSlash(reference.CompilePath))
 		b.WriteString("`\n")
 	}
 	b.WriteString("- Direct Java prompt: `")
@@ -553,7 +684,7 @@ func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, referenc
 	b.WriteString(filepath.ToSlash(direct.Dir))
 	b.WriteString("`\n")
 	b.WriteString("- Direct Java compile report: `")
-	b.WriteString(filepath.ToSlash(filepath.Join(filepath.Dir(briefPath), "direct-java.compile.txt")))
+	b.WriteString(filepath.ToSlash(direct.CompilePath))
 	b.WriteString("`\n")
 	b.WriteString("- Direct Java raw response: `")
 	b.WriteString(filepath.ToSlash(direct.RawResponse))
@@ -567,12 +698,28 @@ func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, referenc
 	b.WriteString("- LIA decision log: `")
 	b.WriteString(filepath.ToSlash(liaResult.DecisionPath))
 	b.WriteString("`\n")
-	b.WriteString("- LIA -> Java output: `")
-	b.WriteString(filepath.ToSlash(lia.Dir))
-	b.WriteString("`\n")
-	b.WriteString("- LIA -> Java compile report: `")
-	b.WriteString(filepath.ToSlash(filepath.Join(filepath.Dir(briefPath), "lia-java.compile.txt")))
-	b.WriteString("`\n\n")
+	profiles := sortedLowerProfiles(lowered)
+	for _, profile := range profiles {
+		variant := lowered[profile]
+		b.WriteString("- ")
+		b.WriteString(variant.Name)
+		b.WriteString(" output: `")
+		b.WriteString(filepath.ToSlash(variant.Dir))
+		b.WriteString("`\n")
+		b.WriteString("- ")
+		b.WriteString(variant.Name)
+		b.WriteString(" compile report: `")
+		b.WriteString(filepath.ToSlash(variant.CompilePath))
+		b.WriteString("`\n")
+		if strings.TrimSpace(variant.LoweringReport) != "" {
+			b.WriteString("- ")
+			b.WriteString(variant.Name)
+			b.WriteString(" lowering report: `")
+			b.WriteString(filepath.ToSlash(variant.LoweringReport))
+			b.WriteString("`\n")
+		}
+	}
+	b.WriteString("\n")
 	b.WriteString("## Notes\n\n")
 	b.WriteString("- Direct Java repair attempts: ")
 	b.WriteString(strconv.Itoa(direct.RepairAttempts))
@@ -584,8 +731,9 @@ func renderComparisonReport(spec *llmgen.ProjectSpec, briefPath string, referenc
 	b.WriteString(", validated ")
 	b.WriteString(strconv.Itoa(liaResult.Replay.ValidatedModules))
 	b.WriteString("\n")
-	b.WriteString("- The direct Java branch receives the same business brief but has no intermediate typed artifact, prompt tape, or decision log.\n")
-	b.WriteString("- The LIA branch adds a structured intermediate (`project.lia`, `.lial`, tape, decision log) before lowering to Java.\n")
+	b.WriteString("- The compared LIA branch uses the `")
+	b.WriteString(string(compareProfile))
+	b.WriteString("` lower profile after replay validation.\n")
 	return b.String()
 }
 
@@ -594,17 +742,114 @@ func renderVariantRow(variant comparisonVariant) string {
 	if variant.HasLIAInputs {
 		provenance = "project.lia + tape + decision log"
 	}
-	return fmt.Sprintf("| %s | %s | %d | %d | %d | %d | %d | %d | %s |\n",
+	return fmt.Sprintf("| %s | %s | %s | %s | %d | %d | %d | %d | %d | %s |\n",
 		variant.Name,
+		variant.Profile,
 		compileLabel(variant.Compile.Success),
+		variant.Compile.Tool,
 		variant.Metrics.JavaFiles,
 		variant.Metrics.Records,
 		variant.Metrics.Interfaces,
 		variant.Metrics.UsecaseClasses,
-		variant.Metrics.AdapterClasses,
 		variant.Metrics.WiringClasses,
 		provenance,
 	)
+}
+
+func sortedLowerProfiles(lowered map[lowerjava.Profile]comparisonVariant) []lowerjava.Profile {
+	profiles := make([]lowerjava.Profile, 0, len(lowered))
+	for profile := range lowered {
+		profiles = append(profiles, profile)
+	}
+	sort.Slice(profiles, func(i, j int) bool {
+		return string(profiles[i]) < string(profiles[j])
+	})
+	return profiles
+}
+
+func directGapNotes(reference *comparisonVariant, direct, lia comparisonVariant, profile lowerjava.Profile) []string {
+	var notes []string
+	if !direct.Compile.Success {
+		notes = append(notes, "O branch direto nao compilou, enquanto o branch LIA compilou no mesmo perfil.")
+	}
+	if direct.Metrics.Interfaces == 0 && lia.Metrics.Interfaces > 0 {
+		notes = append(notes, "O branch direto nao preservou contratos explicitos de porta/interface no resultado final.")
+	}
+	if profile == lowerjava.ProfileSpringBoot {
+		if direct.Metrics.SpringBootApps == 0 {
+			notes = append(notes, "Faltou uma classe principal `@SpringBootApplication` coerente com o projeto alvo.")
+		}
+		if direct.Metrics.SpringConfigs == 0 || direct.Metrics.SpringBeans == 0 {
+			notes = append(notes, "Faltou composicao explicita com `@Configuration`/`@Bean`, deixando a estrutura menos auditavel.")
+		}
+	}
+	if profile == lowerjava.ProfileQuarkus {
+		if direct.Metrics.QuarkusMains == 0 {
+			notes = append(notes, "Faltou um bootstrap Quarkus explicito.")
+		}
+		if direct.Metrics.QuarkusProduces == 0 {
+			notes = append(notes, "Faltaram producers CDI explicitando os binds arquiteturais.")
+		}
+	}
+	if direct.Metrics.WiringClasses == 0 && lia.Metrics.WiringClasses > 0 {
+		notes = append(notes, "O branch direto nao manteve um bloco visivel de wiring/composicao.")
+	}
+	notes = append(notes, "O branch direto nao gera `project.lia`, `prompt-tape.json` nem `decision-log`, entao nao ha replay nem trilha auditavel.")
+	if reference != nil {
+		if direct.Metrics.JavaFiles < reference.Metrics.JavaFiles {
+			notes = append(notes, "O branch direto ficou estruturalmente mais pobre que a referencia manual em quantidade de arquivos/camadas.")
+		}
+		if profile == lowerjava.ProfileSpringBoot && direct.Metrics.SpringBeans < reference.Metrics.SpringBeans {
+			notes = append(notes, "O branch direto perdeu parte da composicao explicita que a referencia manual tem no Spring Boot.")
+		}
+	}
+	return dedupeStringNotes(notes)
+}
+
+func liaStrengthNotes(lia comparisonVariant, profile lowerjava.Profile, liaResult *liaCompareResult) []string {
+	notes := []string{
+		"O caminho LIA preserva um artefato intermediario tipado (`project.lia`) antes do Java final.",
+		"O caminho LIA registra `prompt-tape.json` e `decision-log`, entao a geracao fica reproduzivel e auditavel.",
+		fmt.Sprintf("O replay validou %d modulos gerados antes do lowering.", liaResult.Replay.ValidatedModules),
+	}
+	if lia.Metrics.Interfaces > 0 {
+		notes = append(notes, "Contratos de porta viraram interfaces Java explicitas.")
+	}
+	if lia.Metrics.UsecaseClasses > 0 {
+		notes = append(notes, "Casos de uso viraram classes com dependencias explicitas por construtor.")
+	}
+	if lia.Metrics.LoweringReports > 0 {
+		notes = append(notes, "O projeto final inclui `LOWERING_REPORT.md` explicando como a semantica LIA foi preservada no Java.")
+	}
+	switch profile {
+	case lowerjava.ProfileSpringBoot:
+		if lia.Metrics.SpringBootApps > 0 && lia.Metrics.SpringBeans > 0 {
+			notes = append(notes, "Os `binds` do wiring LIA foram traduzidos deterministicamente para `@Configuration` + `@Bean`.")
+		}
+	case lowerjava.ProfileQuarkus:
+		if lia.Metrics.QuarkusMains > 0 && lia.Metrics.QuarkusProduces > 0 {
+			notes = append(notes, "Os `binds` do wiring LIA foram traduzidos deterministicamente para producers CDI do Quarkus.")
+		}
+	default:
+		if lia.Metrics.WiringClasses > 0 {
+			notes = append(notes, "Os `binds` do wiring LIA viraram composicao manual visivel em Java puro.")
+		}
+	}
+	return dedupeStringNotes(notes)
+}
+
+func dedupeStringNotes(values []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	return out
 }
 
 func compileLabel(ok bool) string {
@@ -618,6 +863,13 @@ func renderCompileResult(result javaCompileResult) string {
 	var b strings.Builder
 	b.WriteString("success: ")
 	b.WriteString(compileLabel(result.Success))
+	b.WriteByte('\n')
+	b.WriteString("tool: ")
+	if strings.TrimSpace(result.Tool) == "" {
+		b.WriteString("javac")
+	} else {
+		b.WriteString(result.Tool)
+	}
 	b.WriteByte('\n')
 	b.WriteString("java_files: ")
 	b.WriteString(strconv.Itoa(result.Files))
@@ -647,9 +899,16 @@ func renderCommonBrief(spec *llmgen.ProjectSpec) string {
 	return b.String()
 }
 
-func buildDirectJavaPrompt(spec *llmgen.ProjectSpec, basePackage string) string {
+func buildDirectJavaPrompt(spec *llmgen.ProjectSpec, basePackage string, profile lowerjava.Profile) string {
 	var b strings.Builder
-	b.WriteString("Generate a plain Java 21 project directly, without using LIA.\n\n")
+	switch profile {
+	case lowerjava.ProfileSpringBoot:
+		b.WriteString("Generate a Spring Boot 3 Java 21 project directly, without using LIA.\n\n")
+	case lowerjava.ProfileQuarkus:
+		b.WriteString("Generate a Quarkus Java 21 project directly, without using LIA.\n\n")
+	default:
+		b.WriteString("Generate a plain Java 21 project directly, without using LIA.\n\n")
+	}
 	b.WriteString("Business brief:\n")
 	b.WriteString(strings.TrimSpace(spec.Brief))
 	b.WriteString("\n\nStructured concerns to cover in the Java project:\n")
@@ -663,10 +922,23 @@ func buildDirectJavaPrompt(spec *llmgen.ProjectSpec, basePackage string) string 
 		b.WriteByte('\n')
 	}
 	b.WriteString("\nRules:\n")
-	b.WriteString("- Use plain Java 21.\n")
-	b.WriteString("- No frameworks and no external dependencies.\n")
+	switch profile {
+	case lowerjava.ProfileSpringBoot:
+		b.WriteString("- Use Spring Boot with Maven.\n")
+		b.WriteString("- Include one @SpringBootApplication main class.\n")
+		b.WriteString("- Use @Configuration and @Bean for explicit composition.\n")
+		b.WriteString("- Keep the project compilable with `mvn -q -DskipTests compile`.\n")
+	case lowerjava.ProfileQuarkus:
+		b.WriteString("- Use Quarkus with Maven.\n")
+		b.WriteString("- Include one @QuarkusMain bootstrap class.\n")
+		b.WriteString("- Use @Produces for explicit composition.\n")
+		b.WriteString("- Keep the project compilable with `mvn -q -DskipTests compile`.\n")
+	default:
+		b.WriteString("- Use plain Java 21.\n")
+		b.WriteString("- No frameworks and no external dependencies.\n")
+		b.WriteString("- Keep the project compilable with javac.\n")
+	}
 	b.WriteString("- Use Maven layout.\n")
-	b.WriteString("- Keep the project compilable with javac.\n")
 	b.WriteString("- Use base package ")
 	b.WriteString(basePackage)
 	b.WriteString(".\n")
@@ -796,4 +1068,30 @@ func sanitizeCompareSegment(raw string) string {
 		return "p" + clean
 	}
 	return clean
+}
+
+func containsJavaProfile(profiles []lowerjava.Profile, target lowerjava.Profile) bool {
+	for _, profile := range profiles {
+		if profile == target {
+			return true
+		}
+	}
+	return false
+}
+
+func compareLIAJavaDir(outDir string, profile lowerjava.Profile) string {
+	return filepath.Join(outDir, "lia-java-"+javaProfileSlug(profile))
+}
+
+func compareLIAJavaCompilePath(outDir string, profile lowerjava.Profile) string {
+	return filepath.Join(outDir, "lia-java-"+javaProfileSlug(profile)+".compile.txt")
+}
+
+func defaultReferenceDirForProfile(profile lowerjava.Profile) string {
+	switch profile {
+	case lowerjava.ProfileSpringBoot:
+		return filepath.Join("examples", "java-reference", "orders-service-spring-boot")
+	default:
+		return filepath.Join("examples", "java-reference", "orders-service")
+	}
 }

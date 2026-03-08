@@ -19,6 +19,7 @@ var lowerCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input := args[0]
 		target, _ := cmd.Flags().GetString("target")
+		profileName, _ := cmd.Flags().GetString("profile")
 		out, _ := cmd.Flags().GetString("out")
 		outDir, _ := cmd.Flags().GetString("out-dir")
 
@@ -29,6 +30,10 @@ var lowerCmd = &cobra.Command{
 
 		switch target {
 		case "java":
+			profile, err := java.ParseProfile(profileName)
+			if err != nil {
+				return err
+			}
 			if strings.TrimSpace(outDir) == "" {
 				if strings.TrimSpace(out) != "" {
 					outDir = out
@@ -36,7 +41,7 @@ var lowerCmd = &cobra.Command{
 					outDir = defaultJavaLowerDir(input)
 				}
 			}
-			project, err := java.LowerProject(prog)
+			project, err := java.LowerProjectWithOptions(prog, java.Options{Profile: profile})
 			if err != nil {
 				return err
 			}
@@ -46,7 +51,7 @@ var lowerCmd = &cobra.Command{
 			if err := java.WriteProject(outDir, project); err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", outDir)
+			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s (%s)\n", outDir, profile)
 			return nil
 		case "python":
 			if strings.TrimSpace(out) == "" {
@@ -73,6 +78,7 @@ var lowerCmd = &cobra.Command{
 
 func init() {
 	lowerCmd.Flags().String("target", "java", "target language: java|python")
+	lowerCmd.Flags().String("profile", "plain", "java lowering profile: plain|spring-boot|quarkus")
 	lowerCmd.Flags().StringP("out", "o", "", "output file (python) or output directory (java)")
 	lowerCmd.Flags().String("out-dir", "", "output directory for multi-file targets")
 }

@@ -110,8 +110,8 @@ func Lower(p *ir.Program) ([]byte, error) {
 	return bytes.TrimRight(buf.Bytes(), "\n"), nil
 }
 
-// LowerProject lowers a linked unit into a multi-file Java project.
-func LowerProject(p *ir.Program) (*Project, error) {
+// lowerProjectWithProfile lowers a linked unit into a multi-file Java project.
+func lowerProjectWithProfile(p *ir.Program, profile Profile) (*Project, error) {
 	if p == nil {
 		return nil, fmt.Errorf("nil program")
 	}
@@ -125,17 +125,22 @@ func LowerProject(p *ir.Program) (*Project, error) {
 	files := []File{
 		{
 			Path:    "pom.xml",
-			Content: []byte(renderPom(index.ProjectName)),
+			Content: []byte(renderPomForProfile(index.ProjectName, profile)),
 		},
 		{
 			Path:    "README.md",
-			Content: []byte(renderReadme(index.ProjectName, index.BasePackage, p)),
+			Content: []byte(renderReadmeForProfile(index.ProjectName, index.BasePackage, p, profile)),
 		},
 		{
 			Path:    javaFilePath(index.BasePackage, projectMainClass(index.ProjectName)),
-			Content: []byte(renderMainClass(index, p)),
+			Content: []byte(renderMainClassForProfile(index, p, profile)),
+		},
+		{
+			Path:    "LOWERING_REPORT.md",
+			Content: []byte(renderLoweringReport(index, p, profile)),
 		},
 	}
+	files = append(files, profileExtraFiles(profile)...)
 
 	usecasesByModule := map[string][]usecaseDeps{}
 	for _, mod := range p.Modules {
@@ -195,9 +200,10 @@ func LowerProject(p *ir.Program) (*Project, error) {
 			})
 		}
 		for _, decl := range mod.Wirings {
+			wiringPkg := wiringPackage(index, mod.Name, profile)
 			files = append(files, File{
-				Path:    javaFilePath(pkg, wiringClassName(decl.Name)),
-				Content: []byte(renderWiring(index, mod.Name, pkg, decl, usecasesByModule[mod.Name])),
+				Path:    javaFilePath(wiringPkg, wiringClassName(decl.Name)),
+				Content: []byte(renderWiringForProfile(index, mod.Name, wiringPkg, decl, usecasesByModule[mod.Name], profile)),
 			})
 		}
 	}

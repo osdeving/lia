@@ -1,0 +1,9 @@
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/OrdersApplication.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/application/CreateOrderInput.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/application/CreateOrderOutput.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/application/CreateOrderUseCase.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/bootstrap/OrdersConfiguration.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/domain/OrderId.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/domain/OrderStatus.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/infrastructure/InMemoryOrderRepository.java
+/home/willams/LIA/lia/examples/java-reference/orders-service-spring-boot/src/main/java/com/example/orders/port/OrderRepository.java

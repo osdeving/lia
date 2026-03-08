@@ -77,6 +77,7 @@ Hoje já existe lowering real para Java, gerando:
 - estrutura de projeto
 - classes, records, interfaces e wiring
 - saída compilável
+- perfis diferentes para o mesmo LIA: `plain`, `spring-boot` e `quarkus`
 
 Então a LIA já consegue chegar a um projeto Java concreto.
 

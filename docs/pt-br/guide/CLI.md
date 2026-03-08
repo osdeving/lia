@@ -14,8 +14,11 @@
 - `lia explain <file.lial> --decision-log out.lial.decision-log.json`
   - imprime hash + resumo
 
-- `lia lower <file.lial> --target java --out-dir out-dir`
+- `lia lower <file.lial> --target java --profile plain|spring-boot|quarkus --out-dir out-dir`
   - gera um projeto Java multi-arquivo a partir do `.lial`
+  - `plain`: Java puro com composicao manual
+  - `spring-boot`: gera bootstrap/configuracao Spring Boot
+  - `quarkus`: gera bootstrap/producers CDI para Quarkus
 
 - `lia lower <file.lial> --target python -o out.py`
   - lower Python ainda é stub
@@ -26,11 +29,13 @@
 - `lia gen project --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
   - usa IA para gerar um projeto LIA a partir de uma spec JSON e já roda parse/check/link/replay
 
-- `lia gen app --prompt "..." --provider ollama|openai-compatible --model <model> --out-dir <dir>`
+- `lia gen app --prompt "..." --provider ollama|openai-compatible --model <model> --out-dir <dir> [--java-profile plain|spring-boot|quarkus] [--java-profiles plain,spring-boot,quarkus]`
   - usa prompt livre, `lia.json` opcional e manifests de packs para gerar um plano interno, produzir LIA e, no target Java, emitir o projeto final
+  - com `--java-profiles`, o mesmo `project.lia` pode ser baixado em varios perfis no mesmo run
 
-- `lia demo compare --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir>`
-  - gera `Java direto` e `LIA -> Java`, compila os dois ramos e escreve `COMPARISON.md`
+- `lia demo compare --spec project-spec.json --provider ollama|openai-compatible --model <model> --out-dir <dir> [--compare-profile spring-boot] [--lia-java-profiles plain,spring-boot,quarkus]`
+  - gera `Java direto` e `LIA -> Java`, compila os ramos relevantes e escreve `COMPARISON.md`
+  - por padrao, compara o perfil `spring-boot` e tambem emite lowers `plain`, `spring-boot` e `quarkus` para o mesmo LIA
 
 ## Carregamento de packs
 

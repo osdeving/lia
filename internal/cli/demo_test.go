@@ -51,6 +51,8 @@ func TestCLIDemoCompare_OpenAICompatible(t *testing.T) {
 		"--provider", "openai-compatible",
 		"--base-url", server.URL,
 		"--model", "mock-model",
+		"--compare-profile", "plain",
+		"--lia-java-profiles", "plain",
 		"--out-dir", outDir,
 		"--reference-dir", referenceDir,
 		"--pack-dir", packDir,
@@ -67,7 +69,7 @@ func TestCLIDemoCompare_OpenAICompatible(t *testing.T) {
 		filepath.Join(outDir, "direct-java", "pom.xml"),
 		filepath.Join(outDir, "lia-artifacts", "project.lia"),
 		filepath.Join(outDir, "lia-artifacts", "project.lial.decision-log.json"),
-		filepath.Join(outDir, "lia-java", "pom.xml"),
+		filepath.Join(outDir, "lia-java-plain", "pom.xml"),
 	} {
 		if _, err := os.Stat(path); err != nil {
 			t.Fatalf("expected artifact %s: %v", path, err)
