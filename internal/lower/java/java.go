@@ -171,6 +171,12 @@ func lowerProjectWithOptions(p *ir.Program, opts Options) (*Project, error) {
 				Content: []byte(renderEnumDecl(pkg, decl)),
 			})
 		}
+		for _, decl := range mod.Records {
+			files = append(files, File{
+				Path:    javaFilePath(pkg, toJavaTypeName(decl.Name)),
+				Content: []byte(renderPayloadRecord(index, mod.Name, pkg, toJavaTypeName(decl.Name), decl.Fields)),
+			})
+		}
 		for _, name := range index.Placeholders[mod.Name] {
 			files = append(files, File{
 				Path:    javaFilePath(pkg, toJavaTypeName(name)),
@@ -279,6 +285,14 @@ func buildIndex(p *ir.Program, strict bool) (*javaIndex, error) {
 				FQCN:   pkg + "." + toJavaTypeName(decl.Name),
 			}
 			idx.EnumsByName[decl.Name] = append(idx.EnumsByName[decl.Name], ref)
+		}
+		for _, decl := range mod.Records {
+			ref := typeRef{
+				Module: mod.Name,
+				Name:   decl.Name,
+				FQCN:   pkg + "." + toJavaTypeName(decl.Name),
+			}
+			idx.TypesByName[decl.Name] = append(idx.TypesByName[decl.Name], ref)
 		}
 		for i := range mod.Ports {
 			decl := &mod.Ports[i]

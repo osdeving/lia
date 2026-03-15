@@ -47,6 +47,9 @@ func TestLowerProject_FullPipelineCompiles(t *testing.T) {
 	cmd := exec.Command("javac", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		if strings.Contains(err.Error(), "executable file not found") {
+			t.Skip("javac not found in PATH, skipping compilation test")
+		}
 		t.Fatalf("javac failed: %v\n%s", err, string(output))
 	}
 }
