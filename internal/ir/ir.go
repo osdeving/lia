@@ -43,6 +43,7 @@ type Module struct {
 	Requires    []SymbolRef      `json:"requires,omitempty"`
 	Types       []TypeDecl       `json:"types,omitempty"`
 	Enums       []EnumDecl       `json:"enums,omitempty"`
+	Records     []RecordDecl     `json:"records,omitempty"`
 	Ports       []PortDecl       `json:"ports,omitempty"`
 	Usecases    []UsecaseDecl    `json:"usecases,omitempty"`
 	Adapters    []AdapterDecl    `json:"adapters,omitempty"`
@@ -116,6 +117,12 @@ type TypeDecl struct {
 type EnumDecl struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values,omitempty"`
+}
+
+// RecordDecl defines a multi-field structured type.
+type RecordDecl struct {
+	Name   string  `json:"name"`
+	Fields []Field `json:"fields,omitempty"`
 }
 
 // PortDecl defines a port contract.

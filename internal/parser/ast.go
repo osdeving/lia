@@ -154,6 +154,7 @@ type Module struct {
 type ModuleItem struct {
 	Type       *TypeDecl       `  @@`
 	Enum       *EnumDecl       `| @@`
+	Record     *RecordDecl     `| @@`
 	Port       *PortDecl       `| @@`
 	Usecase    *UsecaseDecl    `| @@`
 	Adapter    *AdapterDecl    `| @@`
@@ -162,6 +163,13 @@ type ModuleItem struct {
 	Prefer     *PreferDecl     `| @@`
 	Hole       *HoleDecl       `| @@`
 	Candidate  *CandidateDecl  `| @@`
+}
+
+// RecordDecl represents a multi-field structured type in the AST.
+type RecordDecl struct {
+	Token1 string    `"record"`
+	Name   string    `@Ident`
+	Fields FieldList `"{" @@ "}"`
 }
 
 type TypeDecl struct {
@@ -863,6 +871,8 @@ func moduleToIR(m *Module) ir.Module {
 			mod.Types = append(mod.Types, ir.TypeDecl{Name: item.Type.Name, Base: item.Type.Base.Value, Predicate: rawExprValue(item.Type.Predicate)})
 		case item.Enum != nil:
 			mod.Enums = append(mod.Enums, ir.EnumDecl{Name: item.Enum.Name, Values: item.Enum.Values})
+		case item.Record != nil:
+			mod.Records = append(mod.Records, recordToIR(item.Record))
 		case item.Port != nil:
 			mod.Ports = append(mod.Ports, portToIR(item.Port))
 		case item.Usecase != nil:
@@ -983,6 +993,14 @@ func packRefToIR(ref *PackRef) ir.PackRef {
 		out.Version = ref.Version.String()
 	}
 	return out
+}
+
+func recordToIR(r *RecordDecl) ir.RecordDecl {
+	rec := ir.RecordDecl{Name: r.Name}
+	for _, f := range r.Fields.Fields {
+		rec.Fields = append(rec.Fields, ir.Field{Name: f.Name, Type: f.Type.Value})
+	}
+	return rec
 }
 
 func portToIR(p *PortDecl) ir.PortDecl {
