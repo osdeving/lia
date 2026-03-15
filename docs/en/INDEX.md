@@ -39,3 +39,7 @@ This repository is a toolchain + spec for LIA. Use the layers below to navigate.
 ## 5. ADRs
 
 - `../adr/README.md` — ADR index and conventions
+
+## 6. Releases & History
+
+- `CHANGELOG.md` — Detailed implementation history and changes
