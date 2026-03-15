@@ -649,14 +649,14 @@ func (t *TypeRef) Parse(lex *lexer.PeekingLexer) error {
 	var parts []string
 	depthAngle := 0
 	depthBracket := 0
+	terminators := LIATypeTerminators()
 	for {
 		peek := lex.Peek()
 		if peek.EOF() {
 			break
 		}
-		if isTokenType(*peek, "Ident") {
-			switch peek.Value {
-			case "as", "usecase", "adapter", "port", "wiring", "use", "project", "module", "pack", "repro", "tape", "policy", "constraint", "prefer", "hole", "candidate", "input", "output", "effects", "implements", "type", "enum", "where":
+		if isTokenType(*peek, "Ident") || isTokenType(*peek, "Keyword") {
+			if terminators[peek.Value] {
 				if depthAngle == 0 && depthBracket == 0 {
 					goto done
 				}
