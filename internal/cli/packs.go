@@ -53,11 +53,15 @@ func gatherPackRefs(p *ir.Program) []ir.PackRef {
 	return refs
 }
 
-func loadPacksForProgram(cmd *cobra.Command, p *ir.Program) ([]ir.Pack, []ir.Diagnostic) {
+func loadPacksForProgramWithDirs(dirs []string, p *ir.Program) ([]ir.Pack, []ir.Diagnostic) {
 	refs := gatherPackRefs(p)
 	if len(refs) == 0 {
 		return nil, nil
 	}
-	loader := packs.Loader{SearchDirs: resolvePackDirs(cmd)}
+	loader := packs.Loader{SearchDirs: dirs}
 	return loader.LoadAll(refs)
+}
+
+func loadPacksForProgram(cmd *cobra.Command, p *ir.Program) ([]ir.Pack, []ir.Diagnostic) {
+	return loadPacksForProgramWithDirs(resolvePackDirs(cmd), p)
 }

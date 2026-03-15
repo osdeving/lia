@@ -12,68 +12,97 @@ import (
 	"github.com/willams/lia/internal/lower/python"
 )
 
+type LowerOptions struct {
+	Input       string
+	Target      string
+	ProfileName string
+	Strict      bool
+	Out         string
+	OutDir      string
+	Stdout      *os.File
+}
+
+func parseLowerOptions(cmd *cobra.Command, args []string) (LowerOptions, error) {
+	target, _ := cmd.Flags().GetString("target")
+	profileName, _ := cmd.Flags().GetString("profile")
+	strict, _ := cmd.Flags().GetBool("strict")
+	out, _ := cmd.Flags().GetString("out")
+	outDir, _ := cmd.Flags().GetString("out-dir")
+
+	return LowerOptions{
+		Input:       args[0],
+		Target:      target,
+		ProfileName: profileName,
+		Strict:      strict,
+		Out:         out,
+		OutDir:      outDir,
+		Stdout:      os.Stdout,
+	}, nil
+}
+
+func runLower(opts LowerOptions) error {
+	prog, err := loadProgram(opts.Input)
+	if err != nil {
+		return err
+	}
+
+	switch opts.Target {
+	case "java":
+		profile, err := java.ParseProfile(opts.ProfileName)
+		if err != nil {
+			return err
+		}
+		if strings.TrimSpace(opts.OutDir) == "" {
+			if strings.TrimSpace(opts.Out) != "" {
+				opts.OutDir = opts.Out
+			} else {
+				opts.OutDir = defaultJavaLowerDir(opts.Input)
+			}
+		}
+		project, err := java.LowerProjectWithOptions(prog, java.Options{Profile: profile, Strict: opts.Strict})
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(opts.OutDir, 0o755); err != nil {
+			return err
+		}
+		if err := java.WriteProject(opts.OutDir, project); err != nil {
+			return err
+		}
+		fmt.Fprintf(opts.Stdout, "wrote %s (%s)\n", opts.OutDir, profile)
+		return nil
+	case "python":
+		if strings.TrimSpace(opts.Out) == "" {
+			if strings.TrimSpace(opts.OutDir) != "" {
+				opts.Out = opts.OutDir
+			} else {
+				opts.Out = replaceExt(opts.Input, ".py")
+			}
+		}
+		data, err := python.Lower(prog)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(opts.Out, data, 0o644); err != nil {
+			return err
+		}
+		fmt.Fprintf(opts.Stdout, "wrote %s\n", opts.Out)
+		return nil
+	default:
+		return fmt.Errorf("unknown target: %s", opts.Target)
+	}
+}
+
 var lowerCmd = &cobra.Command{
 	Use:   "lower <file.lial>",
 	Short: "Lower a linked unit to a target language",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		input := args[0]
-		target, _ := cmd.Flags().GetString("target")
-		profileName, _ := cmd.Flags().GetString("profile")
-		strict, _ := cmd.Flags().GetBool("strict")
-		out, _ := cmd.Flags().GetString("out")
-		outDir, _ := cmd.Flags().GetString("out-dir")
-
-		prog, err := loadProgram(input)
+		opts, err := parseLowerOptions(cmd, args)
 		if err != nil {
 			return err
 		}
-
-		switch target {
-		case "java":
-			profile, err := java.ParseProfile(profileName)
-			if err != nil {
-				return err
-			}
-			if strings.TrimSpace(outDir) == "" {
-				if strings.TrimSpace(out) != "" {
-					outDir = out
-				} else {
-					outDir = defaultJavaLowerDir(input)
-				}
-			}
-			project, err := java.LowerProjectWithOptions(prog, java.Options{Profile: profile, Strict: strict})
-			if err != nil {
-				return err
-			}
-			if err := os.MkdirAll(outDir, 0o755); err != nil {
-				return err
-			}
-			if err := java.WriteProject(outDir, project); err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s (%s)\n", outDir, profile)
-			return nil
-		case "python":
-			if strings.TrimSpace(out) == "" {
-				if strings.TrimSpace(outDir) != "" {
-					out = outDir
-				} else {
-					out = replaceExt(input, ".py")
-				}
-			}
-			data, err := python.Lower(prog)
-			if err != nil {
-				return err
-			}
-			if err := os.WriteFile(out, data, 0o644); err != nil {
-				return err
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "wrote %s\n", out)
-			return nil
-		default:
-			return fmt.Errorf("unknown target: %s", target)
-		}
+		return runLower(opts)
 	},
 }
 

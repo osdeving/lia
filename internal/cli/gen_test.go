@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -89,6 +90,14 @@ func TestCLIGenProject_OpenAICompatible(t *testing.T) {
 }
 
 func TestCLIGenApp_OpenAICompatible(t *testing.T) {
+	if _, err := os.Stat(filepath.Join(os.Getenv("JAVA_HOME"), "bin", "javac")); err != nil {
+		// Just a heuristic to skip if javac is clearly missing in typical environments, but better to use exec.LookPath
+	}
+	// Let's use exec.LookPath to be sure
+	if _, err := exec.LookPath("javac"); err != nil {
+		t.Skip("javac not found in PATH, skipping compilation-dependent test")
+	}
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Messages []struct {
