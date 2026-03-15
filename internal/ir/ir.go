@@ -8,6 +8,14 @@ type Program struct {
 	Modules  []Module  `json:"modules,omitempty"`
 }
 
+// Position represents a source code location.
+type Position struct {
+	Filename string `json:"filename,omitempty"`
+	Offset   int    `json:"offset,omitempty"`
+	Line     int    `json:"line,omitempty"`
+	Column   int    `json:"column,omitempty"`
+}
+
 // Project represents a project block with policies and imports.
 type Project struct {
 	Name        string           `json:"name"`
@@ -36,6 +44,7 @@ type PackRef struct {
 // Module represents a LIA module.
 type Module struct {
 	Name        string           `json:"name"`
+	Pos         *Position        `json:"pos,omitempty"`
 	Role        string           `json:"role,omitempty"`
 	Gen         *GenMeta         `json:"gen,omitempty"`
 	Doc         *DocBlock        `json:"doc,omitempty"`
@@ -108,33 +117,38 @@ type SymbolRef struct {
 
 // TypeDecl defines a type alias or newtype.
 type TypeDecl struct {
-	Name      string `json:"name"`
-	Base      string `json:"base,omitempty"`
+	Name      string    `json:"name"`
+	Pos       *Position `json:"pos,omitempty"`
+	Base      string    `json:"base,omitempty"`
 	Predicate string `json:"predicate,omitempty"`
 }
 
 // EnumDecl defines an enum.
 type EnumDecl struct {
-	Name   string   `json:"name"`
-	Values []string `json:"values,omitempty"`
+	Name   string    `json:"name"`
+	Pos    *Position `json:"pos,omitempty"`
+	Values []string  `json:"values,omitempty"`
 }
 
 // RecordDecl defines a multi-field structured type.
 type RecordDecl struct {
-	Name   string  `json:"name"`
-	Fields []Field `json:"fields,omitempty"`
+	Name   string    `json:"name"`
+	Pos    *Position `json:"pos,omitempty"`
+	Fields []Field   `json:"fields,omitempty"`
 }
 
 // PortDecl defines a port contract.
 type PortDecl struct {
 	Name    string     `json:"name"`
+	Pos     *Position  `json:"pos,omitempty"`
 	Methods []FuncDecl `json:"methods,omitempty"`
 }
 
 // UsecaseDecl defines a use case contract.
 type UsecaseDecl struct {
-	Name    string   `json:"name"`
-	Inputs  []Field  `json:"inputs,omitempty"`
+	Name    string    `json:"name"`
+	Pos     *Position `json:"pos,omitempty"`
+	Inputs  []Field   `json:"inputs,omitempty"`
 	Outputs []Field  `json:"outputs,omitempty"`
 	Effects []string `json:"effects,omitempty"`
 	Body    []Stmt   `json:"body,omitempty"`
@@ -142,8 +156,9 @@ type UsecaseDecl struct {
 
 // AdapterDecl defines an adapter.
 type AdapterDecl struct {
-	Name       string   `json:"name"`
-	Implements string   `json:"implements,omitempty"`
+	Name       string    `json:"name"`
+	Pos        *Position `json:"pos,omitempty"`
+	Implements string    `json:"implements,omitempty"`
 	Inputs     []Field  `json:"inputs,omitempty"`
 	Outputs    []Field  `json:"outputs,omitempty"`
 	Effects    []string `json:"effects,omitempty"`

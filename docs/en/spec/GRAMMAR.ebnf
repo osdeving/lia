@@ -1,0 +1,126 @@
+(* LIA Language Grammar — EBNF Notation *)
+(* Version: 0.1 *)
+(* This is the authoritative grammar specification for the LIA DSL. *)
+
+Program = { TopLevel } ;
+
+TopLevel = GenBlock? ( Project | Module | Pack ) ;
+
+(* === Top-Level Constructs === *)
+
+Project = "project" QName "{" { ProjectItem } "}" ;
+ProjectItem = Repro | Tape | Use | Policy | Constraint | Module ;
+
+Module = GenBlock? "module" QName ("as" IDENT)? "{" { ModuleItem } "}" ;
+ModuleItem = TypeDecl | EnumDecl | RecordDecl
+           | PortDecl | UsecaseDecl | AdapterDecl
+           | WiringDecl | ConstraintDecl | PreferDecl
+           | HoleDecl | CandidateDecl ;
+
+Pack = "pack" IDENT ("@" Version)? "{" { PackItem } "}" ;
+PackItem = Policy | Constraint | Module ;
+
+(* === Declarations === *)
+
+TypeDecl = "type" IDENT "=" TypeRef ( "where" RawExpr )? ";" ;
+EnumDecl = "enum" IDENT "{" IDENT { "," IDENT } "}" ";" ;
+RecordDecl = "record" IDENT "{" FieldList "}" ;
+
+PortDecl = "port" IDENT ( "implements" TypeRef )? "{" { MethodDecl } "}" ;
+MethodDecl = ("fn" | "method") IDENT "(" FieldList ")" ("->" "(" FieldList ")")? ";" ;
+
+UsecaseDecl = "usecase" IDENT "{" { UsecaseItem } "}" ;
+UsecaseItem = "input" "{" FieldList "}" ";"
+            | "output" "{" FieldList "}" ";"
+            | "effects" "[" IDENT { "," IDENT } "]" ";"
+            | Statement ;
+
+AdapterDecl = "adapter" IDENT ( "implements" QNameOrRef )? "{" { AdapterItem } "}" ;
+AdapterItem = "input" "{" FieldList "}" ";"
+            | "output" "{" FieldList "}" ";"
+            | "effects" "[" IDENT { "," IDENT } "]" ";"
+            | MethodDecl
+            | Statement ;
+
+WiringDecl = "wiring" IDENT "{" { WiringItem } "}" ;
+WiringItem = BindDecl | UseDecl ;
+BindDecl = "bind" QNameOrRef "->" QNameOrRef ";" ;
+UseDecl = "use" PackRef ";" ;
+
+ConstraintDecl = "constraint" IDENT ":" RawExpr ";" ;
+PreferDecl = "prefer" IDENT ":" RawExpr ("weight" NUMBER)? ";" ;
+HoleDecl = "hole" IDENT ":" RawExpr ";" ;
+CandidateDecl = "candidate" IDENT ( "implements" QNameOrRef )? "{" { CandidateItem } "}" ;
+CandidateItem = "score" RawExpr ";"
+              | "weight" NUMBER ";"
+              | BindDecl ;
+
+(* === Project Items === *)
+
+Repro = "repro" ("strict" | "pinned" | "best-effort") ";" ;
+Tape = "tape" QName ";" ;
+Use = "use" PackRef ";" ;
+Policy = "policy" IDENT ":" RawExpr ";" ;
+
+(* === Types and Fields === *)
+
+TypeRef = IDENT { "<" TypeRef { "," TypeRef } ">" | "[]" | "." IDENT } ;
+FieldList = { Field } ;
+Field = IDENT ":" TypeRef ";" ;
+QName = IDENT { "." IDENT } ;
+QNameOrRef = QName ( "::" IDENT ":" IDENT )? ;
+Version = NUMBER { "." NUMBER } ;
+PackRef = IDENT ("@" Version)? ;
+
+(* === Statements === *)
+
+Statement = LetStatement | ReturnStatement | IfStatement
+          | WhileStatement | ForStatement
+          | BreakStatement | ContinueStatement
+          | ExprStatement ;
+
+LetStatement = "let" IDENT (":" TypeRef)? "=" Expr ";" ;
+ReturnStatement = "return" Expr? ";" ;
+IfStatement = "if" Expr "{" { Statement } "}" ( "else" "{" { Statement } "}" )? ;
+WhileStatement = "while" Expr "{" { Statement } "}" ;
+ForStatement = "for" IDENT "in" Expr "{" { Statement } "}" ;
+BreakStatement = "break" ";" ;
+ContinueStatement = "continue" ";" ;
+ExprStatement = Expr ";" ;
+
+(* === Expressions === *)
+
+Expr = UnaryExpr { BinOp UnaryExpr } ;
+UnaryExpr = ( "!" | "-" ) UnaryExpr | PrimaryExpr ;
+PrimaryExpr = IDENT | NUMBER | STRING | BOOL
+            | "(" Expr ")"
+            | IDENT "(" ExprList ")"    (* function call *)
+            | PrimaryExpr "." IDENT ;   (* field access *)
+ExprList = ( Expr { "," Expr } )? ;
+RawExpr = { TOKEN } ;  (* consumed until semicolon / closing brace *)
+
+BinOp = "+" | "-" | "*" | "/" | "%" | "==" | "!="
+      | "<" | ">" | "<=" | ">=" | "&&" | "||" ;
+
+(* === Code Generation Metadata === *)
+
+GenBlock = "@gen" "{" { GenEntry ("," GenEntry)* } "}" ;
+GenEntry = IDENT ":" GenValue ;
+GenValue = STRING | "[" STRING { "," STRING } "]"
+         | "{" GenEntry { ("," | ";") GenEntry } "}" ;
+
+(* === Lexical Tokens === *)
+
+IDENT = LETTER { LETTER | DIGIT | "_" } ;
+NUMBER = DIGIT { DIGIT } ( "." DIGIT { DIGIT } )? ;
+STRING = '"' { CHAR } '"' ;
+BOOL = "true" | "false" ;
+LETTER = "A"-"Z" | "a"-"z" | "_" ;
+DIGIT = "0"-"9" ;
+CHAR = ? any character except '"' ? ;
+
+(* === Comments and Whitespace === *)
+
+Comment = "//" { CHAR } NEWLINE ;
+Whitespace = " " | "\t" | NEWLINE ;
+NEWLINE = "\n" | "\r\n" ;

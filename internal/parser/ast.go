@@ -144,6 +144,7 @@ type Literal struct {
 }
 
 type Module struct {
+	lexer.Position
 	Gen    *GenBlock     `@@?`
 	Token1 string        `"module"`
 	Name   *QName        `@@`
@@ -167,12 +168,14 @@ type ModuleItem struct {
 
 // RecordDecl represents a multi-field structured type in the AST.
 type RecordDecl struct {
+	lexer.Position
 	Token1 string    `"record"`
 	Name   string    `@Ident`
 	Fields FieldList `"{" @@ "}"`
 }
 
 type TypeDecl struct {
+	lexer.Position
 	Token1    string   `"type"`
 	Name      string   `@Ident`
 	Token2    string   `"="`
@@ -182,6 +185,7 @@ type TypeDecl struct {
 }
 
 type EnumDecl struct {
+	lexer.Position
 	Token1 string   `"enum"`
 	Name   string   `@Ident`
 	Values []string `"{" @Ident ("," @Ident)* ","? "}"` // allow trailing comma
@@ -189,6 +193,7 @@ type EnumDecl struct {
 }
 
 type PortDecl struct {
+	lexer.Position
 	Token1  string        `"port"`
 	Name    string        `@Ident`
 	Methods []*MethodDecl `"{" @@* "}"`
@@ -213,12 +218,14 @@ type Field struct {
 }
 
 type UsecaseDecl struct {
+	lexer.Position
 	Token1 string         `"usecase"`
 	Name   string         `@Ident`
 	Items  []*UsecaseItem `"{" @@* "}"`
 }
 
 type AdapterDecl struct {
+	lexer.Position
 	Token1     string         `"adapter"`
 	Name       string         `@Ident`
 	Implements *QName         `( "implements" @@ )?`
@@ -857,8 +864,17 @@ func packToIR(p *Pack) ir.Pack {
 	return pack
 }
 
+func astPosToIR(pos lexer.Position) *ir.Position {
+	return &ir.Position{
+		Filename: pos.Filename,
+		Offset:   pos.Offset,
+		Line:     pos.Line,
+		Column:   pos.Column,
+	}
+}
+
 func moduleToIR(m *Module) ir.Module {
-	mod := ir.Module{Name: m.Name.String()}
+	mod := ir.Module{Name: m.Name.String(), Pos: astPosToIR(m.Position)}
 	if m.Role != "" {
 		mod.Role = m.Role
 	}
@@ -868,9 +884,9 @@ func moduleToIR(m *Module) ir.Module {
 	for _, item := range m.Items {
 		switch {
 		case item.Type != nil:
-			mod.Types = append(mod.Types, ir.TypeDecl{Name: item.Type.Name, Base: item.Type.Base.Value, Predicate: rawExprValue(item.Type.Predicate)})
+			mod.Types = append(mod.Types, ir.TypeDecl{Name: item.Type.Name, Pos: astPosToIR(item.Type.Position), Base: item.Type.Base.Value, Predicate: rawExprValue(item.Type.Predicate)})
 		case item.Enum != nil:
-			mod.Enums = append(mod.Enums, ir.EnumDecl{Name: item.Enum.Name, Values: item.Enum.Values})
+			mod.Enums = append(mod.Enums, ir.EnumDecl{Name: item.Enum.Name, Pos: astPosToIR(item.Enum.Position), Values: item.Enum.Values})
 		case item.Record != nil:
 			mod.Records = append(mod.Records, recordToIR(item.Record))
 		case item.Port != nil:
@@ -996,7 +1012,7 @@ func packRefToIR(ref *PackRef) ir.PackRef {
 }
 
 func recordToIR(r *RecordDecl) ir.RecordDecl {
-	rec := ir.RecordDecl{Name: r.Name}
+	rec := ir.RecordDecl{Name: r.Name, Pos: astPosToIR(r.Position)}
 	for _, f := range r.Fields.Fields {
 		rec.Fields = append(rec.Fields, ir.Field{Name: f.Name, Type: f.Type.Value})
 	}
@@ -1004,7 +1020,7 @@ func recordToIR(r *RecordDecl) ir.RecordDecl {
 }
 
 func portToIR(p *PortDecl) ir.PortDecl {
-	port := ir.PortDecl{Name: p.Name}
+	port := ir.PortDecl{Name: p.Name, Pos: astPosToIR(p.Position)}
 	for _, m := range p.Methods {
 		port.Methods = append(port.Methods, methodToIR(m))
 	}
@@ -1029,7 +1045,7 @@ func fieldToIR(f *Field) ir.Field {
 }
 
 func usecaseToIR(u *UsecaseDecl) ir.UsecaseDecl {
-	uc := ir.UsecaseDecl{Name: u.Name}
+	uc := ir.UsecaseDecl{Name: u.Name, Pos: astPosToIR(u.Position)}
 	for _, item := range u.Items {
 		switch {
 		case item.Input != nil:
@@ -1051,7 +1067,7 @@ func usecaseToIR(u *UsecaseDecl) ir.UsecaseDecl {
 }
 
 func adapterToIR(a *AdapterDecl) ir.AdapterDecl {
-	ad := ir.AdapterDecl{Name: a.Name}
+	ad := ir.AdapterDecl{Name: a.Name, Pos: astPosToIR(a.Position)}
 	if a.Implements != nil {
 		ad.Implements = a.Implements.String()
 	}
